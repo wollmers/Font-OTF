@@ -1,6 +1,6 @@
 =head1 NAME
 
-Font::TTF::Manual - Information regarding the whole module set
+Font::OTF::Manual - Information regarding the whole module set
 
 =head1 INTRODUCTION
 
@@ -27,7 +27,7 @@ implemented! Only the core basic tables of TrueType 1.0 (i.e. no embedded bitmap
 tables, no postscript type tables, no OpenType tables and no GX tables) have
 been implemented. If you want to help by implementing another table or two, then
 please go ahead and send me your code. For a full list of tables, see
-L<Font::TTF::Font>.
+L<Font::OTF::Font>.
 
 
 =head2 Design Principles
@@ -90,7 +90,7 @@ Before the data structures for a table can be accessed, they need to be filled
 in from somewhere. The usual way to do this is to read an existing TrueType
 font. This may be achieved by:
 
-    $f = Font::TTF::Font->open($filename) || die "Unable to read $filename";
+    $f = Font::OTF::Font->open($filename) || die "Unable to read $filename";
 
 This will open an existing font and read its directory header. Notice that at
 this point, none of the tables in the font have been read. (Actually, the
@@ -104,7 +104,7 @@ In order to be able to access information from a table, it is first necessary to
 C<read> it. Consider trying to find the advance width of a space character
 (U+0020). The following code should do it:
 
-    $f = Font::TTF::Font->open($ARGV[0]);
+    $f = Font::OTF::Font->open($ARGV[0]);
     $snum = $f->{'cmap'}->ms_lookup(0x0020);
     $sadv = $f->{'hmtx'}{'advance'}[$snum];
     print $sadv;
@@ -149,7 +149,7 @@ the binary data for normal tables and convert binary data to data structures for
 C<glyph>s.
 
 In summary, therefore, use C<read> unless you want to hack around with the
-internals of glyphs in which case see L<Font::TTF::Glyph> for more details.
+internals of glyphs in which case see L<Font::OTF::Glyph> for more details.
 
 
 =head2 update
@@ -197,7 +197,7 @@ The following information is required:
     $f->{'name'}
 
 Pretty much everything else is calculated for you. Details of what is needed
-for a glyph may be found in L<Font::TTF::Glyph>. Once we have all the
+for a glyph may be found in L<Font::OTF::Glyph>. Once we have all the
 information we need (and there is lots more that you could add) then we simply
 
     $f->dirty;          # mark all tables dirty

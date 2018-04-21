@@ -1,8 +1,8 @@
-package Font::TTF::Kern::CompactClassArray;
+package Font::OTF::Kern::CompactClassArray;
 
 =head1 NAME
 
-Font::TTF::Kern::CompactClassArray - Compact Class Array kern subtable for AAT
+Font::OTF::Kern::CompactClassArray - Compact Class Array kern subtable for AAT
 
 =head1 METHODS
 
@@ -10,13 +10,12 @@ Font::TTF::Kern::CompactClassArray - Compact Class Array kern subtable for AAT
 
 use strict;
 use vars qw(@ISA);
-use Font::TTF::Utils;
-use Font::TTF::AATutils;
+use Font::OTF::Utils;
+use Font::OTF::AATutils;
 
-@ISA = qw(Font::TTF::Kern::Subtable);
+@ISA = qw(Font::OTF::Kern::Subtable);
 
-sub new
-{
+sub new {
     my ($class) = @_;
     my ($self) = {};
 
@@ -30,12 +29,11 @@ Reads the table into memory
 
 =cut
 
-sub read
-{
+sub read {
     my ($self, $fh) = @_;
-    
+
     die "incomplete";
-            
+
     $self;
 }
 
@@ -45,12 +43,11 @@ Writes the table to a file
 
 =cut
 
-sub out_sub
-{
+sub out_sub {
     my ($self, $fh) = @_;
-    
+
     die "incomplete";
-            
+
     $self;
 }
 
@@ -60,20 +57,18 @@ Prints a human-readable representation of the table
 
 =cut
 
-sub print
-{
+sub print {
     my ($self, $fh) = @_;
-    
+
     my $post = $self->post();
-    
+
     $fh = 'STDOUT' unless defined $fh;
 
     die "incomplete";
 }
 
 
-sub type
-{
+sub type {
     return 'kernCompactClassArray';
 }
 
@@ -86,14 +81,14 @@ None known
 
 =head1 AUTHOR
 
-Jonathan Kew L<http://scripts.sil.org/FontUtils>. 
+Jonathan Kew L<http://scripts.sil.org/FontUtils>.
 
 
 =head1 LICENSING
 
-Copyright (c) 1998-2016, SIL International (http://www.sil.org) 
+Copyright (c) 1998-2016, SIL International (http://www.sil.org)
 
-This module is released under the terms of the Artistic License 2.0. 
+This module is released under the terms of the Artistic License 2.0.
 For details, see the full text of the license in the file LICENSE.
 
 

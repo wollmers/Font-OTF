@@ -1,8 +1,8 @@
-package Font::TTF::Anchor;
+package Font::OTF::Anchor;
 
 =head1 NAME
 
-Font::TTF::Anchor - Anchor points for GPOS tables
+Font::OTF::Anchor - Anchor points for GPOS tables
 
 =head1 DESCRIPTION
 
@@ -49,7 +49,7 @@ YIdAnchor for multiple master vertical metric id
 =cut
 
 use strict;
-use Font::TTF::Utils;
+use Font::OTF::Utils;
 
 
 =head2 new
@@ -58,8 +58,7 @@ Creates a new Anchor
 
 =cut
 
-sub new
-{
+sub new {
     my ($class) = shift;
     my ($self) = {@_};
 
@@ -74,36 +73,30 @@ at an arbitrary read point, usually the end of something!
 
 =cut
 
-sub read
-{
+sub read {
     my ($self, $fh) = @_;
     my ($dat, $loc, $fmt, $p, $xoff, $yoff);
 
     $fh->read($dat, 6);
     $fmt = unpack('n', $dat);
-    if ($fmt == 4)
-    { ($self->{'xid'}, $self->{'yid'}) = TTF_Unpack('S2', substr($dat,2)); }
-    else
-    { ($self->{'x'}, $self->{'y'}) = TTF_Unpack('s2', substr($dat,2)); }
+    if ($fmt == 4) { ($self->{'xid'}, $self->{'yid'}) = TTF_Unpack('S2', substr($dat,2)); }
+    else { ($self->{'x'}, $self->{'y'}) = TTF_Unpack('s2', substr($dat,2)); }
 
-    if ($fmt == 2)
-    {
+    if ($fmt == 2) {
         $fh->read($dat, 2);
         $self->{'p'} = unpack('n', $dat);
-    } elsif ($fmt == 3)
-    {
+    }
+    elsif ($fmt == 3) {
         $fh->read($dat, 4);
         ($xoff, $yoff) = unpack('n2', $dat);
         $loc = $fh->tell() - 10;
-        if ($xoff)
-        {
+        if ($xoff) {
             $fh->seek($loc + $xoff, 0);
-            $self->{'xdev'} = Font::TTF::Delta->new->read($fh);
+            $self->{'xdev'} = Font::OTF::Delta->new->read($fh);
         }
-        if ($yoff)
-        {
+        if ($yoff) {
             $fh->seek($loc + $yoff, 0);
-            $self->{'ydev'} = Font::TTF::Delta->new->read($fh);
+            $self->{'ydev'} = Font::OTF::Delta->new->read($fh);
         }
     }
     $self;
@@ -118,41 +111,37 @@ value is the output string.
 
 =cut
 
-sub out
-{
+sub out {
     my ($self, $fh, $style) = @_;
     my ($xoff, $yoff, $fmt, $out);
 
-    if (defined $self->{'xid'} || defined $self->{'yid'})
-    { $out = TTF_Pack('SSS', 4, $self->{'xid'}, $self->{'yid'}); }
-    elsif (defined $self->{'p'})
-    { $out = TTF_Pack('Ssss', 2, @{$self}{'x', 'y', 'p'}); }
-    elsif (defined $self->{'xdev'} || defined $self->{'ydev'})
-    {
+    if (defined $self->{'xid'} || defined $self->{'yid'}) {
+    	$out = TTF_Pack('SSS', 4, $self->{'xid'}, $self->{'yid'});
+    }
+    elsif (defined $self->{'p'}) {
+    	$out = TTF_Pack('Ssss', 2, @{$self}{'x', 'y', 'p'});
+    }
+    elsif (defined $self->{'xdev'} || defined $self->{'ydev'}) {
         $out = TTF_Pack('Sss', 3, @{$self}{'x', 'y'});
-        if (defined $self->{'xdev'})
-        {
+        if (defined $self->{'xdev'}) {
             $out .= pack('n2', 10, 0);
             $out .= $self->{'xdev'}->out($fh, 1);
             $yoff = length($out) - 10;
         }
-        else
-        { $out .= pack('n2', 0, 0); }
-        if (defined $self->{'ydev'})
-        {
+        else { $out .= pack('n2', 0, 0); }
+        if (defined $self->{'ydev'}) {
             $yoff = 10 unless $yoff;
             substr($out, 8, 2) = pack('n', $yoff);
             $out .= $self->{'ydev'}->out($fh, 1);
         }
-    } else
-    { $out = TTF_Pack('Sss', 1, @{$self}{'x', 'y'}); }
+    }
+    else { $out = TTF_Pack('Sss', 1, @{$self}{'x', 'y'}); }
     $fh->print($out) unless $style;
     $out;
 }
 
 
-sub signature
-{
+sub signature {
     my ($self) = @_;
     return join (",", map {"${_}=$self->{$_}"} qw(x y p xdev ydev xid yid));
 }
@@ -164,37 +153,32 @@ Outputs the anchor in XML
 
 =cut
 
-sub out_xml
-{
+sub out_xml {
     my ($self, $context, $depth) = @_;
     my ($fh) = $context->{'fh'};
     my ($end);
-    
+
     $fh->print("$depth<anchor x='$self->{'x'}' y='$self->{'y'}'");
     $fh->print(" p='$self->{'p'}'") if defined ($self->{'p'});
     $end = (defined $self->{'xdev'} || defined $self->{'ydev'} || defined $self->{'xid'} || defined $self->{'yid'});
-    unless ($end)
-    {
+    unless ($end) {
         $fh->print("/>\n");
         return $self;
     }
 
-    if (defined $self->{'xdev'})
-    {
+    if (defined $self->{'xdev'}) {
         $fh->print("$depth$context->{'indent'}<xdev>\n");
         $self->{'xdev'}->out_xml($context, $depth . ($context->{'indent'} x 2));
         $fh->print("$depth$context->{'indent'}</xdev>\n");
     }
-    
-    if (defined $self->{'ydev'})
-    {
+
+    if (defined $self->{'ydev'}) {
         $fh->print("$depth$context->{'indent'}<ydev>\n");
         $self->{'ydev'}->out_xml($context, $depth . ($context->{'indent'} x 2));
         $fh->print("$depth$context->{'indent'}</ydev>\n");
     }
-    
-    if (defined $self->{'xid'} || defined $self->{'yid'})
-    {
+
+    if (defined $self->{'xid'} || defined $self->{'yid'}) {
         $fh->print("$depth$context->{'indent'}<mmaster");
         $fh->print(" xid='$self->{'xid'}'") if defined ($self->{'xid'});
         $fh->print(" yid='$self->{'yid'}'") if defined ($self->{'yid'});
@@ -209,14 +193,14 @@ sub out_xml
 
 =head1 AUTHOR
 
-Martin Hosken L<http://scripts.sil.org/FontUtils>. 
+Martin Hosken L<http://scripts.sil.org/FontUtils>.
 
 
 =head1 LICENSING
 
-Copyright (c) 1998-2016, SIL International (http://www.sil.org) 
+Copyright (c) 1998-2016, SIL International (http://www.sil.org)
 
-This module is released under the terms of the Artistic License 2.0. 
+This module is released under the terms of the Artistic License 2.0.
 For details, see the full text of the license in the file LICENSE.
 
 

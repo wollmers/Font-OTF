@@ -1,8 +1,8 @@
-package Font::TTF::Feat;
+package Font::OTF::Feat;
 
 =head1 NAME
 
-Font::TTF::Feat - Font Features
+Font::OTF::Feat - Font Features
 
 =head1 DESCRIPTION
 
@@ -45,11 +45,11 @@ hash of setting number against name string index
 use strict;
 use vars qw(@ISA);
 
-use Font::TTF::Utils;
+use Font::OTF::Utils;
 
-require Font::TTF::Table;
+require Font::OTF::Table;
 
-@ISA = qw(Font::TTF::Table);
+@ISA = qw(Font::OTF::Table);
 
 =head2 $t->read
 
@@ -57,8 +57,7 @@ Reads the features from the TTF file into memory
 
 =cut
 
-sub read
-{
+sub read {
     my ($self) = @_;
     my ($featureCount, $features);
 
@@ -67,7 +66,7 @@ sub read
     ($self->{'version'}, $featureCount) = TTF_Unpack("vS", $self->{' dat'});
 
     $features = [];
-    foreach (1 .. $featureCount) {
+    for (1 .. $featureCount) {
         my ($feature, $nSettings, $settingTable, $featureFlags, $nameIndex)
                 = TTF_Unpack("SSLSS", substr($self->{' dat'}, $_ * 12, 12));
         push @$features,
@@ -79,9 +78,9 @@ sub read
             };
     }
     $self->{'features'} = $features;
-    
+
     delete $self->{' dat'}; # no longer needed, and may become obsolete
-    
+
     $self;
 }
 
@@ -91,17 +90,16 @@ Writes the features to a TTF file
 
 =cut
 
-sub out
-{
+sub out {
     my ($self, $fh) = @_;
     my ($features, $numFeatures, $settings, $featuresData, $settingsData);
-    
+
     return $self->SUPER::out($fh) unless $self->{' read'};
 
     $features = $self->{'features'};
     $numFeatures = @$features;
 
-    foreach (@$features) {
+    for (@$features) {
         $settings = $_->{'settings'};
         $featuresData .= TTF_Pack("SSLSS",
                                     $_->{'feature'},
@@ -109,7 +107,7 @@ sub out
                                     12 + 12 * $numFeatures + length $settingsData,
                                     ($_->{'exclusive'} ? 0x8000 : 0x0000),
                                     $_->{'name'});
-        foreach (sort {$a <=> $b} keys %$settings) {
+        for (sort {$a <=> $b} keys %$settings) {
             $settingsData .= TTF_Pack("SS", $_, $settings->{$_});
         }
     }
@@ -129,8 +127,7 @@ must be bad and should be deleted or whatever.
 
 =cut
 
-sub minsize
-{
+sub minsize {
     return 6;
 }
 
@@ -141,8 +138,7 @@ Prints a human-readable representation of the table
 
 =cut
 
-sub print
-{
+sub print {
     my ($self, $fh) = @_;
     my ($names, $features, $settings);
 
@@ -154,31 +150,30 @@ sub print
     $fh = 'STDOUT' unless defined $fh;
 
     $features = $self->{'features'};
-    foreach (@$features) {
+    for (@$features) {
         $fh->printf("Feature %d, %s, name %d # '%s'\n",
                     $_->{'feature'},
                     ($_->{'exclusive'} ? "exclusive" : "additive"),
                     $_->{'name'},
                     $names->{'strings'}[$_->{'name'}][1][0]{0});
         $settings = $_->{'settings'};
-        foreach (sort { $a <=> $b } keys %$settings) {
+        for (sort { $a <=> $b } keys %$settings) {
             $fh->printf("\tSetting %d, name %d # '%s'\n",
                         $_, $settings->{$_}, $names->{'strings'}[$settings->{$_}][1][0]{0});
         }
     }
-    
+
     $self;
 }
 
-sub settingName
-{
+sub settingName {
     my ($self, $feature, $setting) = @_;
 
     $self->read;
 
     my $names = $self->{' PARENT'}->{'name'};
     $names->read;
-    
+
     my $features = $self->{'features'};
     my ($featureEntry) = grep { $_->{'feature'} == $feature } @$features;
     my $featureName = $names->{'strings'}[$featureEntry->{'name'}][1][0]{0};
@@ -198,14 +193,14 @@ None known
 
 =head1 AUTHOR
 
-Jonathan Kew L<http://scripts.sil.org/FontUtils>. 
+Jonathan Kew L<http://scripts.sil.org/FontUtils>.
 
 
 =head1 LICENSING
 
-Copyright (c) 1998-2016, SIL International (http://www.sil.org) 
+Copyright (c) 1998-2016, SIL International (http://www.sil.org)
 
-This module is released under the terms of the Artistic License 2.0. 
+This module is released under the terms of the Artistic License 2.0.
 For details, see the full text of the license in the file LICENSE.
 
 

@@ -16,8 +16,7 @@ use IO::File;
 
 @ISA = qw(Font::TTF::Mort::Subtable);
 
-sub new
-{
+sub new {
     my ($class, $direction, $orientation, $subFeatureFlags) = @_;
     my ($self) = {
                     'direction'            => $direction,
@@ -35,23 +34,22 @@ Reads the table into memory
 
 =cut
 
-sub read
-{
+sub read {
     my ($self, $fh) = @_;
     my ($dat);
-    
+
     my $subtableStart = $fh->tell();
 
     my $stateTableStart = $fh->tell();
     my ($classes, $states, $entries) = AAT_read_state_table($fh, 2);
-    
+
     my %insertListHash;
     my $insertLists;
-    foreach (@$entries) {
+    for (@$entries) {
         my $flags = $_->{'flags'};
         my @insertCount = (($flags & 0x03e0) >> 5, ($flags & 0x001f));
         my $actions = $_->{'actions'};
-        foreach (0 .. 1) {
+        for (0 .. 1) {
             if ($insertCount[$_] > 0) {
                 $fh->seek($stateTableStart + $actions->[$_], IO::File::SEEK_SET);
                 $fh->read($dat, $insertCount[$_] * 2);
@@ -70,7 +68,7 @@ sub read
     $self->{'classes'} = $classes;
     $self->{'states'} = $states;
     $self->{'insertLists'} = $insertLists;
-            
+
     $self;
 }
 
@@ -78,19 +76,18 @@ sub read
 
 =cut
 
-sub pack_sub
-{
+sub pack_sub {
     my ($self) = @_;
-    
+
     my ($dat) = pack("nnnn", (0) x 4);
-    
+
     my $classTable = length($dat);
     my $classes = $self->{'classes'};
     $dat .= AAT_pack_classes($classes);
-    
+
     my $stateArray = length($dat);
     my $states = $self->{'states'};
-    my ($dat1, $stateSize, $entries) = AAT_pack_states($classes, $stateArray, $states, 
+    my ($dat1, $stateSize, $entries) = AAT_pack_states($classes, $stateArray, $states,
             sub {
                 my $actions = $_->{'actions'};
                 ( $_->{'flags'}, @$actions )
@@ -102,11 +99,11 @@ sub pack_sub
     my $offset = ($entryTable + 8 * @$entries);
     my @insListOffsets;
     my $insertLists = $self->{'insertLists'};
-    foreach (@$insertLists) {
+    for (@$insertLists) {
         push @insListOffsets, $offset;
         $offset += 2 * scalar @$_;
     }
-    foreach (@$entries) {
+    for (@$entries) {
         my ($nextState, $flags, @lists) = split /,/;
         $flags &= ~0x03ff;
         $flags |= (scalar @{$insertLists->[$lists[0]]}) << 5 if $lists[0] ne '';
@@ -114,8 +111,8 @@ sub pack_sub
         $dat .= pack("nnnn", $nextState, $flags,
                     map { $_ eq '' ? 0 : $insListOffsets[$_] } @lists);
     }
-    
-    foreach (@$insertLists) {
+
+    for (@$insertLists) {
         $dat .= pack("n*", @$_);
     }
 
@@ -131,22 +128,21 @@ Prints a human-readable representation of the table
 
 =cut
 
-sub print
-{
+sub print {
     my ($self, $fh) = @_;
-    
+
     my $post = $self->post();
-    
+
     $fh = 'STDOUT' unless defined $fh;
 
     $self->print_classes($fh);
-    
+
     $fh->print("\n");
     my $states = $self->{'states'};
-    foreach (0 .. $#$states) {
+    for (0 .. $#$states) {
         $fh->printf("\t\tState %d:", $_);
         my $state = $states->[$_];
-        foreach (@$state) {
+        for (@$state) {
             my $flags;
             $flags .= "!" if ($_->{'flags'} & 0x4000);
             $flags .= "*" if ($_->{'flags'} & 0x8000);
@@ -158,7 +154,7 @@ sub print
 
     $fh->print("\n");
     my $insertLists = $self->{'insertLists'};
-    foreach (0 .. $#$insertLists) {
+    for (0 .. $#$insertLists) {
         my $insertList = $insertLists->[$_];
         $fh->printf("\t\tList %d: %s\n", $_, join(", ", map { $_ . " [" . $post->{'VAL'}[$_] . "]" } @$insertList));
     }
@@ -172,14 +168,14 @@ None known
 
 =head1 AUTHOR
 
-Jonathan Kew L<http://scripts.sil.org/FontUtils>. 
+Jonathan Kew L<http://scripts.sil.org/FontUtils>.
 
 
 =head1 LICENSING
 
-Copyright (c) 1998-2016, SIL International (http://www.sil.org) 
+Copyright (c) 1998-2016, SIL International (http://www.sil.org)
 
-This module is released under the terms of the Artistic License 2.0. 
+This module is released under the terms of the Artistic License 2.0.
 For details, see the full text of the license in the file LICENSE.
 
 

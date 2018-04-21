@@ -1,8 +1,8 @@
-package Font::TTF::Kern::StateTable;
+package Font::OTF::Kern::StateTable;
 
 =head1 NAME
 
-Font::TTF::Kern::StateTable - State Table Kern subtable for AAT
+Font::OTF::Kern::StateTable - State Table Kern subtable for AAT
 
 =head1 METHODS
 
@@ -10,18 +10,17 @@ Font::TTF::Kern::StateTable - State Table Kern subtable for AAT
 
 use strict;
 use vars qw(@ISA);
-use Font::TTF::Utils;
-use Font::TTF::AATutils;
-use Font::TTF::Kern::Subtable;
+use Font::OTF::Utils;
+use Font::OTF::AATutils;
+use Font::OTF::Kern::Subtable;
 use IO::File;
 
-@ISA = qw(Font::TTF::Kern::Subtable);
+@ISA = qw(Font::OTF::Kern::Subtable);
 
-sub new
-{
+sub new {
     my ($class) = @_;
     my ($self) = {};
-    
+
     $class = ref($class) || $class;
     bless $self, $class;
 }
@@ -32,16 +31,15 @@ Reads the table into memory
 
 =cut
 
-sub read
-{
+sub read {
     my ($self, $fh) = @_;
     my ($dat);
-    
+
     my $stTableStart = $fh->tell();
 
     my ($classes, $states, $entries) = AAT_read_state_table($fh, 0);
 
-    foreach (@$entries) {
+    for (@$entries) {
         my $flags = $_->{'flags'};
         delete $_->{'flags'};
         $_->{'push'} = 1        if $flags & 0x8000;
@@ -65,7 +63,7 @@ sub read
     $self->{'entries'} = $entries;
 
     $fh->seek($stTableStart - 8 + $self->{'length'}, IO::File::SEEK_SET);
-    
+
     $self;
 }
 
@@ -75,9 +73,7 @@ Writes the table to a file
 
 =cut
 
-sub out_sub
-{
-}
+sub out_sub { }
 
 =head2 $t->print($fh)
 
@@ -85,31 +81,28 @@ Prints a human-readable representation of the table
 
 =cut
 
-sub print
-{
-}
+sub print { }
 
-sub dumpXML
-{
+sub dumpXML {
     my ($self, $fh) = @_;
-    
+
     $fh->printf("<classes>\n");
     $self->dumpClasses($self->{'classes'}, $fh);
     $fh->printf("</classes>\n");
 
     $fh->printf("<states>\n");
     my $states = $self->{'states'};
-    foreach (0 .. $#$states) {
+    for (0 .. $#$states) {
         $fh->printf("<state index=\"%s\">\n", $_);
         my $members = $states->[$_];
-        foreach (0 .. $#$members) {
+        for (0 .. $#$members) {
             my $m = $members->[$_];
             $fh->printf("<m index=\"%s\" nextState=\"%s\"", $_, $m->{'nextState'});
             $fh->printf(" push=\"1\"")        if $m->{'push'};
             $fh->printf(" noAdvance=\"1\"")    if $m->{'noAdvance'};
             if (exists $m->{'kernList'}) {
                 $fh->printf(">");
-                foreach (@{$m->{'kernList'}}) {
+                for (@{$m->{'kernList'}}) {
                     $fh->printf("<kern v=\"%s\"/>", $_);
                 }
                 $fh->printf("</m>\n");
@@ -123,10 +116,7 @@ sub dumpXML
     $fh->printf("</states>\n");
 }
 
-sub type
-{
-    return 'kernStateTable';
-}
+sub type { return 'kernStateTable'; }
 
 1;
 
@@ -136,14 +126,14 @@ None known
 
 =head1 AUTHOR
 
-Jonathan Kew L<http://scripts.sil.org/FontUtils>. 
+Jonathan Kew L<http://scripts.sil.org/FontUtils>.
 
 
 =head1 LICENSING
 
-Copyright (c) 1998-2016, SIL International (http://www.sil.org) 
+Copyright (c) 1998-2016, SIL International (http://www.sil.org)
 
-This module is released under the terms of the Artistic License 2.0. 
+This module is released under the terms of the Artistic License 2.0.
 For details, see the full text of the license in the file LICENSE.
 
 

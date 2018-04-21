@@ -1,8 +1,8 @@
-package Font::TTF::Cvt_;
+package Font::OTF::Cvt_;
 
 =head1 NAME
 
-Font::TTF::Cvt_ - Control Value Table in a TrueType font
+Font::OTF::Cvt_ - Control Value Table in a TrueType font
 
 =head1 DESCRIPTION
 
@@ -19,7 +19,7 @@ This is an array of CVT values. Thus access to the CVT is via:
 
     $f->{'cvt_'}{'val'}[$num];
 
-=back    
+=back
 
 =head1 METHODS
 
@@ -27,9 +27,9 @@ This is an array of CVT values. Thus access to the CVT is via:
 
 use strict;
 use vars qw(@ISA $VERSION);
-use Font::TTF::Utils;
+use Font::OTF::Utils;
 
-@ISA = qw(Font::TTF::Table);
+@ISA = qw(Font::OTF::Table);
 
 $VERSION = 0.0001;
 
@@ -40,8 +40,7 @@ array.
 
 =cut
 
-sub read
-{
+sub read {
     my ($self) = @_;
 
     $self->read_dat || return undef;
@@ -57,8 +56,7 @@ Updates the RAM file copy C<' dat'> to be the same as the array.
 
 =cut
 
-sub update
-{
+sub update {
     my ($self) = @_;
 
     return undef unless ($self->{' read'} && $#{$self->{'val'}} >= 0);
@@ -74,14 +72,14 @@ None known
 
 =head1 AUTHOR
 
-Martin Hosken L<http://scripts.sil.org/FontUtils>. 
+Martin Hosken L<http://scripts.sil.org/FontUtils>.
 
 
 =head1 LICENSING
 
-Copyright (c) 1998-2016, SIL International (http://www.sil.org) 
+Copyright (c) 1998-2016, SIL International (http://www.sil.org)
 
-This module is released under the terms of the Artistic License 2.0. 
+This module is released under the terms of the Artistic License 2.0.
 For details, see the full text of the license in the file LICENSE.
 
 

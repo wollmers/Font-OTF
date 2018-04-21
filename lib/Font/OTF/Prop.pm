@@ -1,8 +1,8 @@
-package Font::TTF::Prop;
+package Font::OTF::Prop;
 
 =head1 NAME
 
-Font::TTF::Prop - Glyph Properties table in a font
+Font::OTF::Prop - Glyph Properties table in a font
 
 =head1 DESCRIPTION
 
@@ -28,11 +28,11 @@ Hash of property values keyed by glyph number
 
 use strict;
 use vars qw(@ISA);
-use Font::TTF::Utils;
-use Font::TTF::AATutils;
-use Font::TTF::Segarr;
+use Font::OTF::Utils;
+use Font::OTF::AATutils;
+use Font::OTF::Segarr;
 
-@ISA = qw(Font::TTF::Table);
+@ISA = qw(Font::OTF::Table);
 
 =head2 $t->read
 
@@ -40,12 +40,11 @@ Reads the table into memory
 
 =cut
 
-sub read
-{
+sub read {
     my ($self) = @_;
     my ($dat, $fh);
     my ($version, $lookupPresent, $default);
-    
+
     $self->SUPER::read or return $self;
 
     $fh = $self->{' INFILE'};
@@ -71,11 +70,10 @@ Writes the table to a file either from memory or by copying
 
 =cut
 
-sub out
-{
+sub out {
     my ($self, $fh) = @_;
     my ($default, $lookup);
-    
+
     return $self->SUPER::out($fh) unless $self->{' read'};
 
     $default = $self->{'default'};
@@ -92,10 +90,7 @@ must be bad and should be deleted or whatever.
 
 =cut
 
-sub minsize
-{
-    return 8;
-}
+sub minsize { return 8; }
 
 =head2 $t->print($fh)
 
@@ -103,30 +98,28 @@ Prints a human-readable representation of the table
 
 =cut
 
-sub print
-{
+sub print {
     my ($self, $fh) = @_;
     my ($lookup);
-    
+
     $self->read;
-    
+
     $fh = 'STDOUT' unless defined $fh;
 
     $fh->printf("version %f\ndefault %04x # %s\n", $self->{'version'}, $self->{'default'}, meaning_($self->{'default'}));
     $lookup = $self->{'lookup'};
     if (defined $lookup) {
         $fh->printf("format %d\n", $self->{'format'});
-        foreach (sort { $a <=> $b } keys %$lookup) {
+        for (sort { $a <=> $b } keys %$lookup) {
             $fh->printf("\t%d -> %04x # %s\n", $_, $lookup->{$_}, meaning_($lookup->{$_}));
         }
     }
 }
 
-sub meaning_
-{
+sub meaning_ {
     my ($val) = @_;
     my ($res);
-    
+
     my @types = (
         "Strong left-to-right",
         "Strong right-to-left",
@@ -141,7 +134,7 @@ sub meaning_
         "Whitespace",
         "Other neutral");
     $res = $types[$val & 0x001f] or ("Undefined [" . ($val & 0x001f) . "]");
-    
+
     $res .= ", floater" if $val & 0x8000;
     $res .= ", hang left" if $val & 0x4000;
     $res .= ", hang right" if $val & 0x2000;
@@ -150,7 +143,7 @@ sub meaning_
     my $pairOffset = ($val & 0x0f00) >> 8;
     $pairOffset = $pairOffset - 16 if $pairOffset > 7;
     $res .= $pairOffset > 0 ? " +" . $pairOffset : $pairOffset < 0 ? " " . $pairOffset : "";
-    
+
     $res;
 }
 
@@ -163,14 +156,14 @@ None known
 
 =head1 AUTHOR
 
-Jonathan Kew L<http://scripts.sil.org/FontUtils>. 
+Jonathan Kew L<http://scripts.sil.org/FontUtils>.
 
 
 =head1 LICENSING
 
-Copyright (c) 1998-2016, SIL International (http://www.sil.org) 
+Copyright (c) 1998-2016, SIL International (http://www.sil.org)
 
-This module is released under the terms of the Artistic License 2.0. 
+This module is released under the terms of the Artistic License 2.0.
 For details, see the full text of the license in the file LICENSE.
 
 

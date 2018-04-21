@@ -1,23 +1,23 @@
 ﻿use utf8;  # NB: This file includes non-ASCII string constants in UTF-8 encoding
 
-package Font::TTF::OTTags;
+package Font::OTF::OTTags;
 
 =head1 NAME
 
-Font::TTF::OTTags - Utilities for TrueType/OpenType tags
+Font::OTF::OTTags - Utilities for TrueType/OpenType tags
 
 =head1 SYNOPSIS
 
-  use Font::TTF::OTTags qw( %tttags %ttnames %iso639 readtagsfile );
-  
+  use Font::OTF::OTTags qw( %tttags %ttnames %iso639 readtagsfile );
+
   # Look at built-in stuff:
   $script_tag = $tttags{'SCRIPT'}{'Cypriot Syllabary'};  # returns 'cprt'
   $lang_name = $ttnames{'LANGUAGE'}{'ALT '};             # returns 'Altai'
-  
+
   # Map iso639-2 tag to/from OT lang tag
   @isotags = $iso639{'ALT '};    # returns [ 'atv', 'alt' ]
   $lang_tag = $iso639{'atv'};    # returns 'ALT '
-    
+
   # Read latest tags file to add to built-in definitions
   readtagsfile ("C:\\Program Files\\Microsoft VOLT\\TAGS.txt");
 
@@ -29,18 +29,18 @@ First-level keys to %tttags and %ttnames are:
 
 retrieve script tag or name
 
-=item LANGUAGE 
+=item LANGUAGE
 
 retrieve language tag or name
 
-=item FEATURE 
+=item FEATURE
 
 retrieve feature tag or name
 
 =back
 
 Built-in data has been derived from the 2014-07-11 draft of the
-3rd edition of ISO/IEC 14496-22 
+3rd edition of ISO/IEC 14496-22
 (Information technology - Coding of audio-visual objects - Part 22: Open Font Format)
 which, when finalized and approved, will replace the second edition (ISO/IEC 14496-22:2009).
 
@@ -1638,16 +1638,14 @@ require Exporter;
 );
 
 {
-    foreach my $s (qw ( SCRIPT LANGUAGE FEATURE ) )
-    {
+    for my $s (qw ( SCRIPT LANGUAGE FEATURE ) ) {
         map { $ttnames{$s}{$tttags{$s}{$_}} = $_ }  keys %{$tttags{$s}};
     }
-    
+
     # For ISO639 info, the raw data is a space-separated list of ISO639
     # language IDs. We convert that list to an array.
-    
-    foreach my $tag (keys %iso639)
-    {
+
+    for my $tag (keys %iso639) {
         my $list = $iso639{$tag};
         $iso639{$tag} = [ split(' ', $list) ];
         # Also set the reverse mapping:
@@ -1664,19 +1662,17 @@ Returns 0 if cannot open the file; else 1.
 
 =cut
 
-sub readtagsfile
-{
+sub readtagsfile {
     my $fname = shift;
     open (TAGS, $fname) or return 0;
     my ($what, $name, $tag);
-    while (<TAGS>)
-    {
+    while (<TAGS>) {
         ($what, $name, $tag) = (m/"([^"]*)", "([^"]*)", "([^"]*)"/);  #"
         $ttnames{$what}{$tag} = $name;
         $tttags{$what}{$name} = $tag;
     }
     close TAGS;
-    return 1;   
+    return 1;
 }
 
 1;
@@ -1688,9 +1684,9 @@ Bob Hallissy. L<http://scripts.sil.org/FontUtils>.
 
 =head1 LICENSING
 
-Copyright (c) 1998-2016, SIL International (http://www.sil.org) 
+Copyright (c) 1998-2016, SIL International (http://www.sil.org)
 
-This module is released under the terms of the Artistic License 2.0. 
+This module is released under the terms of the Artistic License 2.0.
 For details, see the full text of the license in the file LICENSE.
 
 

@@ -1,8 +1,8 @@
-package Font::TTF::Post;
+package Font::OTF::Post;
 
 =head1 NAME
 
-Font::TTF::Post - Holds the Postscript names for each glyph
+Font::OTF::Post - Holds the Postscript names for each glyph
 
 =head1 DESCRIPTION
 
@@ -29,9 +29,9 @@ variables available to control what post table types can be written.
 
 =over 4
 
-=item $Font::TTF::Post::no25
+=item $Font::OTF::Post::no25
 
-If set tells Font::TTF::Post::out to use table type 2 instead of 2.5 in case apps
+If set tells Font::OTF::Post::out to use table type 2 instead of 2.5 in case apps
 cannot handle version 2.5.
 
 =item VAL
@@ -65,12 +65,12 @@ standard:
 
 use strict;
 use vars qw(@ISA @base_set %base_set %fields $VERSION $no25 @field_info @base_set);
-require Font::TTF::Table;
-use Font::TTF::Utils;
+require Font::OTF::Table;
+use Font::OTF::Utils;
 
 $no25 = 1;                  # officially deprecated format 2.5 tables in MS spec 1.3
 
-@ISA = qw(Font::TTF::Table);
+@ISA = qw(Font::OTF::Table);
 @field_info = (
     'FormatType' => 'f',
     'italicAngle' => 'f',
@@ -103,11 +103,9 @@ $no25 = 1;                  # officially deprecated format 2.5 tables in MS spec
 
 $VERSION = 0.01;        # MJPH   5-AUG-1998     Re-organise data structures
 
-sub init
-{
+sub init {
     my ($k, $v, $c, $i);
-    for ($i = 0; $i < $#field_info; $i += 2)
-    {
+    for ($i = 0; $i < $#field_info; $i += 2) {
         ($k, $v, $c) = TTF_Init_Fields($field_info[$i], $c, $field_info[$i + 1]);
         next unless defined $k && $k ne "";
         $fields{$k} = $v;
@@ -123,8 +121,7 @@ Reads the Postscript table into memory from disk
 
 =cut
 
-sub read
-{
+sub read {
     my ($self) = @_;
     $self->SUPER::read or return $self;
 
@@ -136,15 +133,14 @@ sub read
     $fh->read($dat, 32);
     TTF_Read_Fields($self, $dat, \%fields);
 
-    if (int($self->{'FormatType'} + .5) == 1)
-    {
+    if (int($self->{'FormatType'} + .5) == 1) {
         for ($i = 0; $i < 258; $i++)
         {
             $self->{'VAL'}[$i] = $base_set[$i];
             $self->{'STRINGS'}{$base_set[$i]} = $i unless (defined $self->{'STRINGS'}{$base_set[$i]});
         }
-    } elsif (int($self->{'FormatType'} * 2 + .1) == 5)
-    {
+    }
+    elsif (int($self->{'FormatType'} * 2 + .1) == 5) {
         $fh->read($dat, 2);
         $numGlyphs = unpack("n", $dat);
         $fh->read($dat, $numGlyphs);
@@ -154,33 +150,28 @@ sub read
             $self->{'VAL'}[$i] = $base_set[$i + $off];
             $self->{'STRINGS'}{$base_set[$i + $off]} = $i unless (defined $self->{'STRINGS'}{$base_set[$i + $off]});
         }
-    } elsif (int($self->{'FormatType'} + .5) == 2)
-    {
+    }
+    elsif (int($self->{'FormatType'} + .5) == 2) {
         my (@strings);
-        
+
         $fh->read($dat, ($numGlyphs + 1) << 1);
-        for ($i = 0; $i < $numGlyphs; $i++)
-        {
+        for ($i = 0; $i < $numGlyphs; $i++) {
             $off = unpack("n", substr($dat, ($i + 1) << 1, 2));
             $maxoff = $off if (!defined $maxoff || $off > $maxoff);
         }
-        for ($i = 0; $i < $maxoff - 257; $i++)
-        {
+        for ($i = 0; $i < $maxoff - 257; $i++) {
             $fh->read($dat1, 1);
             $off = unpack("C", $dat1);
             $fh->read($dat1, $off);
             $strings[$i] = $dat1;
         }
-        for ($i = 0; $i < $numGlyphs; $i++)
-        {
+        for ($i = 0; $i < $numGlyphs; $i++) {
             $off = unpack("n", substr($dat, ($i + 1) << 1, 2));
-            if ($off > 257)
-            {
+            if ($off > 257) {
                 $self->{'VAL'}[$i] = $strings[$off - 258];
                 $self->{'STRINGS'}{$strings[$off - 258]} = $i;
             }
-            else
-            {
+            else {
                 $self->{'VAL'}[$i] = $base_set[$off];
                 $self->{'STRINGS'}{$base_set[$off]} = $i unless (defined $self->{'STRINGS'}{$base_set[$off]});
             }
@@ -196,8 +187,7 @@ Writes out a new Postscript name table from memory or copies from disk
 
 =cut
 
-sub out
-{
+sub out {
     my ($self, $fh) = @_;
     my ($i, $num);
 
@@ -207,22 +197,18 @@ sub out
 
     init unless ($fields{'FormatType'});
 
-    for ($i = $#{$self->{'VAL'}}; !defined $self->{'VAL'}[$i] && $i > 0; $i--)
-    { pop(@{$self->{'VAL'}}); }
-    if ($#{$self->{'VAL'}} < 0)
-    { $self->{'FormatType'} = 3; }
-    else
-    {
+    for ($i = $#{$self->{'VAL'}}; !defined $self->{'VAL'}[$i] && $i > 0; $i--) {
+    	pop(@{$self->{'VAL'}});
+    }
+    if ($#{$self->{'VAL'}} < 0) { $self->{'FormatType'} = 3; }
+    else {
         $self->{'FormatType'} = 1;
-        for ($i = 0; $i < $num; $i++)
-        {
-            if (!defined $base_set{$self->{'VAL'}[$i]})
-            {
+        for ($i = 0; $i < $num; $i++) {
+            if (!defined $base_set{$self->{'VAL'}[$i]}) {
                 $self->{'FormatType'} = 2;
                 last;
             }
-            elsif ($base_set{$self->{'VAL'}[$i]} != $i)
-            { $self->{'FormatType'} = ($no25 ? 2 : 2.5); }
+            elsif ($base_set{$self->{'VAL'}[$i]} != $i) { $self->{'FormatType'} = ($no25 ? 2 : 2.5); }
         }
     }
 
@@ -230,35 +216,30 @@ sub out
 
     return $self if (int($self->{'FormatType'} + .4) == 3);
 
-    if (int($self->{'FormatType'} + .5) == 2)
-    {
+    if (int($self->{'FormatType'} + .5) == 2) {
         my (@ind);
         my ($count) = 0;
-        
+
         $fh->print(pack("n", $num));
-        for ($i = 0; $i < $num; $i++)
-        {
-            if (defined $base_set{$self->{'VAL'}[$i]})
-            { $fh->print(pack("n", $base_set{$self->{'VAL'}[$i]})); }
-            else
-            {
+        for ($i = 0; $i < $num; $i++) {
+            if (defined $base_set{$self->{'VAL'}[$i]}) { $fh->print(pack("n", $base_set{$self->{'VAL'}[$i]})); }
+            else {
                 $fh->print(pack("n", $count + 258));
                 $ind[$count++] = $i;
             }
         }
-        for ($i = 0; $i < $count; $i++)
-        {
+        for ($i = 0; $i < $count; $i++) {
             $fh->print(pack("C", length($self->{'VAL'}[$ind[$i]])));
             $fh->print($self->{'VAL'}[$ind[$i]]);
         }
-    } elsif (int($self->{'FormatType'} * 2 + .5) == 5)
-    {
+    }
+    elsif (int($self->{'FormatType'} * 2 + .5) == 5) {
         $fh->print(pack("n", $num));
         for ($i = 0; $i < $num; $i++)
         { $fh->print(pack("c", defined $base_set{$self->{'VAL'}[$i]} ?
                     $base_set{$self->{'VAL'}[$i]} - $i : -$i)); }
     }
-        
+
     $self;
 }
 
@@ -269,8 +250,7 @@ Outputs the names as one block of XML
 
 =cut
 
-sub XML_element
-{
+sub XML_element {
     my ($self) = shift;
     my ($context, $depth, $key, $val) = @_;
     my ($fh) = $context->{'fh'};
@@ -293,10 +273,7 @@ must be bad and should be deleted or whatever.
 
 =cut
 
-sub minsize
-{
-    return 32;
-}
+sub minsize { return 32; }
 
 1;
 
@@ -312,14 +289,14 @@ No support for type 4 tables
 
 =head1 AUTHOR
 
-Martin Hosken L<http://scripts.sil.org/FontUtils>. 
+Martin Hosken L<http://scripts.sil.org/FontUtils>.
 
 
 =head1 LICENSING
 
-Copyright (c) 1998-2016, SIL International (http://www.sil.org) 
+Copyright (c) 1998-2016, SIL International (http://www.sil.org)
 
-This module is released under the terms of the Artistic License 2.0. 
+This module is released under the terms of the Artistic License 2.0.
 For details, see the full text of the license in the file LICENSE.
 
 

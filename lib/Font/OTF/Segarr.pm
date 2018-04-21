@@ -1,8 +1,8 @@
-package Font::TTF::Segarr;
+package Font::OTF::Segarr;
 
 =head1 NAME
 
-Font::TTF::Segarr - Segmented array
+Font::OTF::Segarr - Segmented array
 
 =head1 DESCRIPTION
 
@@ -44,14 +44,13 @@ $VERSION = 0.0001;
 
 @types = ('', 'C', 'n', '', 'N');
 
-=head2 Font::TTF::Segarr->new($size)
+=head2 Font::OTF::Segarr->new($size)
 
 Creates a new segmented array with a given data size
 
 =cut
 
-sub new
-{
+sub new {
     my ($class) = @_;
     my ($self) = [];
 
@@ -70,46 +69,40 @@ Returns the number of segments inserted.
 
 =cut
 
-sub fastadd_segment
-{
+sub fastadd_segment {
     my ($self) = shift;
     my ($start) = shift;
     my ($sparse) = shift;
     my ($p, $i, $seg, @seg);
 
 
-    if ($sparse)
-    {
-        for ($i = 0; $i <= $#_; $i++)
-        {
-            if (!defined $seg && (($sparse != 2 && defined $_[$i]) || $_[$i] != 0))
-            { $seg->{'START'} = $start + $i; $seg->{'VAL'} = []; }
-            
-            if (defined $seg && (($sparse == 2 && $_[$i] == 0) || !defined $_[$i]))
-            {
+    if ($sparse) {
+        for ($i = 0; $i <= $#_; $i++) {
+            if (!defined $seg && (($sparse != 2 && defined $_[$i]) || $_[$i] != 0)) {
+            	$seg->{'START'} = $start + $i; $seg->{'VAL'} = [];
+            }
+
+            if (defined $seg && (($sparse == 2 && $_[$i] == 0) || !defined $_[$i])) {
                 $seg->{'LEN'} = $start + $i - $seg->{'START'};
                 push(@seg, $seg);
                 $seg = undef;
-            } elsif (defined $seg)
-            { push (@{$seg->{'VAL'}}, $_[$i]); }
+            }
+            elsif (defined $seg) { push (@{$seg->{'VAL'}}, $_[$i]); }
         }
-        if (defined $seg)
-        {
+        if (defined $seg) {
             push(@seg, $seg);
             $seg->{'LEN'} = $start + $i - $seg->{'START'};
         }
-    } else
-    {
+    }
+    else {
         $seg->{'START'} = $start;
         $seg->{'LEN'} = $#_ + 1;
         $seg->{'VAL'} = [@_];
         @seg = ($seg);
     }
 
-    for ($i = 0; $i <= $#$self; $i++)
-    {
-        if ($self->[$i]{'START'} > $start)
-        {
+    for ($i = 0; $i <= $#$self; $i++) {
+        if ($self->[$i]{'START'} > $start) {
             splice(@$self, $i, 0, @seg);
             return wantarray ? @seg : scalar(@seg);
         }
@@ -132,8 +125,7 @@ values.
 
 =cut
 
-sub add_segment
-{
+sub add_segment {
     my ($self) = shift;
     my ($start) = shift;
     my ($over) = shift;
@@ -141,49 +133,42 @@ sub add_segment
 
     return $self->fastadd_segment($start, $over, @_) if ($#$self < 0);
     $offset = 0;
-    for ($i = 0; $i <= $#$self && $offset <= $#_; $i++)
-    {
+    for ($i = 0; $i <= $#$self && $offset <= $#_; $i++) {
         $s = $self->[$i];
-        if ($s->{'START'} <= $start + $offset)              # only < for $offset == 0
-        {
-            if ($s->{'START'} + $s->{'LEN'} > $start + $#_)
-            {
-                for ($j = $offset; $j <= $#_; $j++)
-                {
-                    if ($over)
-                    { $s->{'VAL'}[$start - $s->{'START'} + $j] = $_[$j] if defined $_[$j]; }
+        if ($s->{'START'} <= $start + $offset) {            # only < for $offset == 0
+
+            if ($s->{'START'} + $s->{'LEN'} > $start + $#_) {
+                for ($j = $offset; $j <= $#_; $j++) {
+                    if ($over) { $s->{'VAL'}[$start - $s->{'START'} + $j] = $_[$j] if defined $_[$j]; }
                     else
                     { $s->{'VAL'}[$start - $s->{'START'} + $j] ||= $_[$j] if defined $_[$j]; }
                 }
                 $offset = $#_ + 1;
                 last;
-            } elsif ($s->{'START'} + $s->{'LEN'} > $start + $offset)        # is $offset needed here?
-            {
-                for ($j = $offset; $j < $s->{'START'} + $s->{'LEN'} - $start; $j++)
-                {
+            }
+            elsif ($s->{'START'} + $s->{'LEN'} > $start + $offset) {       # is $offset needed here?
+
+                for ($j = $offset; $j < $s->{'START'} + $s->{'LEN'} - $start; $j++) {
                     if ($over)
                     { $s->{'VAL'}[$start - $s->{'START'} + $j] = $_[$j] if defined $_[$j]; }
-                    else
-                    { $s->{'VAL'}[$start - $s->{'START'} + $j] ||= $_[$j] if defined $_[$j]; }
+                    else { $s->{'VAL'}[$start - $s->{'START'} + $j] ||= $_[$j] if defined $_[$j]; }
                 }
                 $offset = $s->{'START'} + $s->{'LEN'} - $start;
             }
-        } else                                              # new seg please
-        {
-            if ($s->{'START'} > $start + $#_ + 1)
-            {
+        }
+        else {                                           # new seg please
+
+            if ($s->{'START'} > $start + $#_ + 1) {
                 $i += $self->fastadd_segment($start + $offset, 1, @_[$offset .. $#_]) - 1;
                 $offset = $#_ + 1;
             }
-            else
-            {
+            else {
                 $i += $self->fastadd_segment($start + $offset, 1, @_[$offset .. $s->{'START'} - $start]) - 1;
                 $offset = $s->{'START'} - $start + 1;
             }
         }
     }
-    if ($offset <= $#_)
-    {
+    if ($offset <= $#_) {
         $seg->{'START'} = $start + $offset;
         $seg->{'LEN'} = $#_ - $offset + 1;
         $seg->{'VAL'} = [@_[$offset .. $#_]];
@@ -199,17 +184,14 @@ Merges any immediately adjacent segments
 
 =cut
 
-sub tidy
-{
+sub tidy {
     my ($self) = @_;
     my ($i, $sl, $s);
 
-    for ($i = 1; $i <= $#$self; $i++)
-    {
+    for ($i = 1; $i <= $#$self; $i++) {
         $sl = $self->[$i - 1];
         $s = $self->[$i];
-        if ($s->{'START'} == $sl->{'START'} + $sl->{'LEN'})
-        {
+        if ($s->{'START'} == $sl->{'START'} + $sl->{'LEN'}) {
             $sl->{'LEN'} += $s->{'LEN'};
             push (@{$sl->{'VAL'}}, @{$s->{'VAL'}});
             splice(@$self, $i, 1);
@@ -227,33 +209,29 @@ etc. If $len > 1 then returns an array of values, spaces being filled with undef
 
 =cut
 
-sub at
-{
+sub at {
     my ($self, $addr, $len) = @_;
     my ($i, $dat, $s, @res, $offset);
 
     $len = 1 unless defined $len;
     $offset = 0;
-    for ($i = 0; $i <= $#$self; $i++)
-    {
+    for ($i = 0; $i <= $#$self; $i++) {
         $s = $self->[$i];
         next if ($s->{'START'} + $s->{'LEN'} < $addr + $offset);        # only fires on $offset == 0
-        if ($s->{'START'} > $addr + $offset)
-        {
+        if ($s->{'START'} > $addr + $offset) {
             push (@res, (undef) x ($s->{'START'} > $addr + $len ?
                     $len - $offset : $s->{'START'} - $addr - $offset));
             $offset = $s->{'START'} - $addr;
         }
         last if ($s->{'START'} >= $addr + $len);
-        
-        if ($s->{'START'} + $s->{'LEN'} >= $addr + $len)
-        {
+
+        if ($s->{'START'} + $s->{'LEN'} >= $addr + $len) {
             push (@res, @{$s->{'VAL'}}[$addr + $offset - $s->{'START'} ..
                     $addr + $len - $s->{'START'} - 1]);
             $offset = $len;
             last;
-        } else
-        {
+        }
+        else {
             push (@res, @{$s->{'VAL'}}[$addr + $offset - $s->{'START'} .. $s->{'LEN'} - 1]);
             $offset = $s->{'START'} + $s->{'LEN'} - $addr;
         }
@@ -271,27 +249,23 @@ undef, but it deletes stuff as it goes.
 
 =cut
 
-sub remove
-{
+sub remove {
     my ($self, $addr, $len) = @_;
     my ($i, $dat, $s, @res, $offset);
 
     $len = 1 unless defined $len;
     $offset = 0;
-    for ($i = 0; $i <= $#$self; $i++)
-    {
+    for ($i = 0; $i <= $#$self; $i++) {
         $s = $self->[$i];
         next if ($s->{'START'} + $s->{'LEN'} < $addr + $offset);
-        if ($s->{'START'} > $addr + $offset)
-        {
+        if ($s->{'START'} > $addr + $offset) {
             push (@res, (undef) x ($s->{'START'} > $addr + $len ?
                     $len - $offset : $s->{'START'} - $addr - $offset));
             $offset = $s->{'START'} - $addr;
         }
         last if ($s->{'START'} >= $addr + $len);
-        
-        unless ($s->{'START'} == $addr + $offset)
-        {
+
+        unless ($s->{'START'} == $addr + $offset) {
             my ($seg) = {};
 
             $seg->{'START'} = $s->{'START'};
@@ -304,15 +278,14 @@ sub remove
             $i++;
         }
 
-        if ($s->{'START'} + $s->{'LEN'} >= $addr + $len)
-        {
+        if ($s->{'START'} + $s->{'LEN'} >= $addr + $len) {
             push (@res, splice(@{$s->{'VAL'}}, 0, $len - $offset));
             $s->{'LEN'} -= $len - $offset;
             $s->{'START'} += $len - $offset;
             $offset = $len;
             last;
-        } else
-        {
+        }
+        else {
             push (@res, @{$s->{'VAL'}});
             $offset = $s->{'START'} + $s->{'LEN'} - $addr;
             splice(@$self, $i, 0);
@@ -322,7 +295,7 @@ sub remove
     push (@res, (undef) x ($len - $offset)) if ($offset < $len);
     return wantarray ? @res : $res[0];
 }
-    
+
 
 =head2 $s->copy
 
@@ -330,17 +303,16 @@ Deep copies this array
 
 =cut
 
-sub copy
-{
+sub copy {
     my ($self) = @_;
     my ($res, $p);
 
     $res = [];
-    foreach $p (@$self)
+    for $p (@$self)
     { push (@$res, $self->copy_seg($p)); }
     $res;
 }
-    
+
 
 =head2 $s->copy_seg($seg)
 
@@ -348,14 +320,13 @@ Creates a deep copy of a segment
 
 =cut
 
-sub copy_seg
-{
+sub copy_seg {
     my ($self, $seg) = @_;
     my ($p, $res);
 
     $res = {};
     $res->{'VAL'} = [@{$seg->{'VAL'}}];
-    foreach $p (keys %$seg)
+    for $p (keys %$seg)
     { $res->{$p} = $seg->{$p} unless defined $res->{$p}; }
     $res;
 }
@@ -369,14 +340,14 @@ No known bugs.
 
 =head1 AUTHOR
 
-Martin Hosken L<http://scripts.sil.org/FontUtils>. 
+Martin Hosken L<http://scripts.sil.org/FontUtils>.
 
 
 =head1 LICENSING
 
-Copyright (c) 1998-2016, SIL International (http://www.sil.org) 
+Copyright (c) 1998-2016, SIL International (http://www.sil.org)
 
-This module is released under the terms of the Artistic License 2.0. 
+This module is released under the terms of the Artistic License 2.0.
 For details, see the full text of the license in the file LICENSE.
 
 

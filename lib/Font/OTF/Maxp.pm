@@ -1,8 +1,8 @@
-package Font::TTF::Maxp;
+package Font::OTF::Maxp;
 
 =head1 NAME
 
-Font::TTF::Maxp - Maximum Profile table in a font
+Font::OTF::Maxp - Maximum Profile table in a font
 
 =head1 DESCRIPTION
 
@@ -39,9 +39,9 @@ No others beyond those specified in the standard:
 
 use strict;
 use vars qw(@ISA %fields @field_info);
-use Font::TTF::Utils;
+use Font::OTF::Utils;
 
-@ISA = qw(Font::TTF::Table);
+@ISA = qw(Font::OTF::Table);
 @field_info = (
     'numGlyphs' => 'S',
     'maxPoints' => 'S',
@@ -58,11 +58,9 @@ use Font::TTF::Utils;
     'maxComponentElements' => 'S',
     'maxComponentDepth' => 'S');
 
-sub init
-{
+sub init {
     my ($k, $v, $c, $i);
-    for ($i = 0; $i < $#field_info; $i += 2)
-    {
+    for ($i = 0; $i < $#field_info; $i += 2) {
         ($k, $v, $c) = TTF_Init_Fields($field_info[$i], $c, $field_info[$i + 1]);
         next unless defined $k && $k ne "";
         $fields{$k} = $v;
@@ -76,8 +74,7 @@ Reads the table into memory
 
 =cut
 
-sub read
-{
+sub read {
     my ($self) = @_;
     my ($dat);
 
@@ -87,12 +84,11 @@ sub read
     $self->{' INFILE'}->read($dat, 4);
     $self->{'version'} = TTF_Unpack("v", $dat);
 
-    if ($self->{'version'} == 0.5)
-    {
+    if ($self->{'version'} == 0.5) {
         $self->{' INFILE'}->read($dat, 2);
         $self->{'numGlyphs'} = unpack("n", $dat);
-    } else
-    {
+    }
+    else {
         $self->{' INFILE'}->read($dat, 28);
         TTF_Read_Fields($self, $dat, \%fields);
     }
@@ -106,17 +102,14 @@ Writes the table to a file either from memory or by copying.
 
 =cut
 
-sub out
-{
+sub out {
     my ($self, $fh) = @_;
 
     return $self->SUPER::out($fh) unless $self->{' read'};
     $fh->print(TTF_Pack("v", $self->{'version'}));
-    
-    if ($self->{'version'} == 0.5)
-    { $fh->print(pack("n", $self->{'numGlyphs'})); }
-    else
-    { $fh->print(TTF_Out_Fields($self, \%fields, 28)); }
+
+    if ($self->{'version'} == 0.5) { $fh->print(pack("n", $self->{'numGlyphs'})); }
+    else { $fh->print(TTF_Out_Fields($self, \%fields, 28)); }
     $self;
 }
 
@@ -127,10 +120,7 @@ must be bad and should be deleted or whatever.
 
 =cut
 
-sub minsize
-{
-    return 4;
-}
+sub minsize { return 4; }
 
 
 =head2 $t->update
@@ -141,8 +131,7 @@ left as they were read.
 
 =cut
 
-sub update
-{
+sub update {
     my ($self) = @_;
     my ($i, $num, @n, @m, $j);
     my (@name) = qw(maxPoints maxContours maxCompositePoints maxCompositeContours
@@ -154,8 +143,7 @@ sub update
     $self->{' PARENT'}{'loca'}->update;
     $num = $self->{'numGlyphs'};
 
-    for ($i = 0; $i < $num; $i++)
-    {
+    for ($i = 0; $i < $num; $i++) {
         my ($g) = $self->{' PARENT'}{'loca'}{'glyphs'}[$i] || next;
 
         @n = $g->maxInfo;
@@ -164,16 +152,15 @@ sub update
         { $m[$j] = $n[$j] if $n[$j] > $m[$j]; }
     }
 
-    foreach ('prep', 'fpgm')
-    { $m[4] = length($self->{' PARENT'}{$_}{' dat'})
-            if (defined $self->{' PARENT'}{$_} 
+    for ('prep', 'fpgm') { $m[4] = length($self->{' PARENT'}{$_}{' dat'})
+            if (defined $self->{' PARENT'}{$_}
                 && length($self->{' PARENT'}{$_}{' dat'}) > $m[4]);
     }
 
-    for ($j = 0; $j <= $#name; $j++)
-    { $self->{$name[$j]} = $m[$j]; }
+    for ($j = 0; $j <= $#name; $j++) { $self->{$name[$j]} = $m[$j]; }
     $self;
 }
+
 1;
 
 
@@ -183,14 +170,14 @@ None known
 
 =head1 AUTHOR
 
-Martin Hosken L<http://scripts.sil.org/FontUtils>. 
+Martin Hosken L<http://scripts.sil.org/FontUtils>.
 
 
 =head1 LICENSING
 
-Copyright (c) 1998-2016, SIL International (http://www.sil.org) 
+Copyright (c) 1998-2016, SIL International (http://www.sil.org)
 
-This module is released under the terms of the Artistic License 2.0. 
+This module is released under the terms of the Artistic License 2.0.
 For details, see the full text of the license in the file LICENSE.
 
 

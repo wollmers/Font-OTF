@@ -1,8 +1,8 @@
-package Font::TTF::Features::Size;
+package Font::OTF::Features::Size;
 
 =head1 NAME
 
-Font::TTF::Features::Size - Class for Size Feature Parameters
+Font::OTF::Features::Size - Class for Size Feature Parameters
 
 =head1 DESCRIPTION
 
@@ -47,7 +47,7 @@ Top end of recomended usage size range
 
 =cut
 
-use Font::TTF::Utils;
+use Font::OTF::Utils;
 use strict;
 
 =head2 $t->read
@@ -56,20 +56,20 @@ Reads the Feature Params
 
 =cut
 
-sub read
-{
+sub read {
     my ($self) = @_;
     my ($fh) = $self->{' INFILE'};
     my ($off) = $self->{' OFFSET'};
     my $dat;
-		$fh->seek($off, 0); 
+		$fh->seek($off, 0);
     $fh->read($dat, 10);
 
-    (    $self->{'DesignSize'}
-				,$self->{'SubFID'}
-				,$self->{'SubFNameID'}
-				,$self->{'MinSize'}
-				,$self->{'MaxSize'} ) = TTF_Unpack("S*", $dat);
+    ( $self->{'DesignSize'},
+      $self->{'SubFID'},
+      $self->{'SubFNameID'},
+      $self->{'MinSize'},
+      $self->{'MaxSize'}
+    ) = TTF_Unpack("S*", $dat);
 
     return $self;
 }
@@ -80,11 +80,10 @@ Writes the FeatureParams table to the output
 
 =cut
 
-sub out
-{
+sub out {
     my ($self, $fh) = @_;
-    
-    $fh->print(TTF_Pack("S*" 
+
+    $fh->print(TTF_Pack("S*"
     		,$self->{'DesignSize'}
     		,$self->{'SubFID'}
     		,$self->{'SubFNameID'}
@@ -93,38 +92,35 @@ sub out
     $self;
 }
 
-=head2 Font::TTF::Features::Sset->new()
+=head2 Font::OTF::Features::Sset->new()
 
 Creates a new FeatureParams object.  Table instance variables are passed in
 at this point as an associative array.
 
 =cut
 
-sub new
-{
+sub new {
     my ($class,%parms) = @_;
     my ($self) = {};
     my ($p);
-    foreach $p (keys %parms)
-    { $self->{" $p"} = $parms{$p}; }
+    for $p (keys %parms) { $self->{" $p"} = $parms{$p}; }
     bless $self, $class;
 }
 
-sub out_xml
-{
+sub out_xml {
 }
 
 1;
 
 =head1 AUTHOR
 
-David Raymond L<http://scripts.sil.org/FontUtils>. 
+David Raymond L<http://scripts.sil.org/FontUtils>.
 
 =head1 LICENSING
 
-Copyright (c) 1998-2016, SIL International (http://www.sil.org) 
+Copyright (c) 1998-2016, SIL International (http://www.sil.org)
 
-This module is released under the terms of the Artistic License 2.0. 
+This module is released under the terms of the Artistic License 2.0.
 For details, see the full text of the license in the file LICENSE.
 
 =cut

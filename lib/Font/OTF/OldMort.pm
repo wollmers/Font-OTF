@@ -1,14 +1,14 @@
-package Font::TTF::OldMort;
+package Font::OTF::OldMort;
 
 =head1 NAME
 
-Font::TTF::OldMort - Glyph Metamorphosis table in a font
+Font::OTF::OldMort - Glyph Metamorphosis table in a font
 
 =head1 DESCRIPTION
 
 =head1 INSTANCE VARIABLES
 
-=over 
+=over
 
 =item version
 
@@ -121,15 +121,15 @@ Insertion table:
 
 use strict;
 use vars qw(@ISA);
-use Font::TTF::Utils;
-use Font::TTF::AATutils;
+use Font::OTF::Utils;
+use Font::OTF::AATutils;
 use IO::File;
 
-@ISA = qw(Font::TTF::Table);
+@ISA = qw(Font::OTF::Table);
 
 =over
 
-=back 
+=back
 
 =head2 $t->read
 
@@ -137,25 +137,24 @@ Reads the table into memory
 
 =cut
 
-sub read
-{
+sub read {
     my ($self) = @_;
     my ($dat, $fh, $numChains);
-    
+
     $self->SUPER::read or return $self;
 
     $fh = $self->{' INFILE'};
 
     $fh->read($dat, 8);
     ($self->{'version'}, $numChains) = TTF_Unpack("fL", $dat);
-    
+
     my $chains = [];
-    foreach (1 .. $numChains) {
+    for (1 .. $numChains) {
         my $chainStart = $fh->tell();
         $fh->read($dat, 12);
         my ($defaultFlags, $chainLength, $nFeatureEntries, $nSubtables) = TTF_Unpack("LLSS", $dat);
         my $featureEntries = [];
-        foreach (1 .. $nFeatureEntries) {
+        for (1 .. $nFeatureEntries) {
             $fh->read($dat, 12);
             my ($featureType, $featureSetting, $enableFlags, $disableFlags) = TTF_Unpack("SSLL", $dat);
             push @$featureEntries,    {
@@ -166,7 +165,7 @@ sub read
                                     };
         }
         my $subtables = [];
-        foreach (1 .. $nSubtables) {
+        for (1 .. $nSubtables) {
             my $subtableStart = $fh->tell();
             $fh->read($dat, 8);
             my ($length, $coverage, $subFeatureFlags) = TTF_Unpack("SSL", $dat);
@@ -194,13 +193,13 @@ sub read
                 my ($stateSize, $classTable, $stateArray, $entryTable, $mappingTables) = unpack("nnnnn", $dat);
                 my $limits = [$classTable, $stateArray, $entryTable, $mappingTables, $length - 8];
 
-                foreach (@$entries) {
+                for (@$entries) {
                     my $actions = $_->{'actions'};
-                    foreach (@$actions) {
+                    for (@$actions) {
                         $_ = $_ ? $_ - ($mappingTables / 2) : undef;
                     }
                 }
-                
+
                 $subtable->{'classes'} = $classes;
                 $subtable->{'states'} = $states;
                 $subtable->{'mappings'} = [unpack("n*", AAT_read_subtable($fh, $stateTableStart, $mappingTables, $limits))];
@@ -209,16 +208,16 @@ sub read
             elsif ($type == 2) {    # ligature
                 my $stateTableStart = $fh->tell();
                 my ($classes, $states, $entries) = AAT_read_state_table($fh, 0);
-                
+
                 $fh->seek($stateTableStart, IO::File::SEEK_SET);
                 $fh->read($dat, 14);
                 my ($stateSize, $classTable, $stateArray, $entryTable,
                     $ligActionTable, $componentTable, $ligatureTable) = unpack("nnnnnnn", $dat);
                 my $limits = [$classTable, $stateArray, $entryTable, $ligActionTable, $componentTable, $ligatureTable, $length - 8];
-                
+
                 my %actions;
                 my $actionLists;
-                foreach (@$entries) {
+                for (@$entries) {
                     my $offset = $_->{'flags'} & 0x3fff;
                     $_->{'flags'} &= ~0x3fff;
                     if ($offset != 0) {
@@ -240,17 +239,17 @@ sub read
                         $_->{'actions'} = $actions{$offset};
                     }
                 }
-                
+
                 $subtable->{'componentTable'} = $componentTable;
                 my $components = [unpack("n*", AAT_read_subtable($fh, $stateTableStart, $componentTable, $limits))];
-                foreach (@$components) {
+                for (@$components) {
                     $_ = ($_ - $ligatureTable) . " +" if $_ >= $ligatureTable;
                 }
                 $subtable->{'components'} = $components;
-                
+
                 $subtable->{'ligatureTable'} = $ligatureTable;
                 $subtable->{'ligatures'} = [unpack("n*", AAT_read_subtable($fh, $stateTableStart, $ligatureTable, $limits))];
-                
+
                 $subtable->{'classes'} = $classes;
                 $subtable->{'states'} = $states;
                 $subtable->{'actionLists'} = $actionLists;
@@ -265,14 +264,14 @@ sub read
             elsif ($type == 5) {    # insertion
                 my $stateTableStart = $fh->tell();
                 my ($classes, $states, $entries) = AAT_read_state_table($fh, 2);
-                
+
                 my %insertListHash;
                 my $insertLists;
-                foreach (@$entries) {
+                for (@$entries) {
                     my $flags = $_->{'flags'};
                     my @insertCount = (($flags & 0x03e0) >> 5, ($flags & 0x001f));
                     my $actions = $_->{'actions'};
-                    foreach (0 .. 1) {
+                    for (0 .. 1) {
                         if ($insertCount[$_] > 0) {
                             $fh->seek($stateTableStart + $actions->[$_], IO::File::SEEK_SET);
                             $fh->read($dat, $insertCount[$_] * 2);
@@ -296,11 +295,11 @@ sub read
             else {
                 die "unknown subtable type";
             }
-            
+
             push @$subtables, $subtable;
             $fh->seek($subtableStart + $length, IO::File::SEEK_SET);
         }
-        
+
         push @$chains,    {
                             'defaultFlags'        => $defaultFlags,
                             'featureEntries'    => $featureEntries,
@@ -320,49 +319,48 @@ Writes the table to a file either from memory or by copying
 
 =cut
 
-sub out
-{
+sub out {
     my ($self, $fh) = @_;
-    
+
     return $self->SUPER::out($fh) unless $self->{' read'};
 
     my $chains = $self->{'chains'};
     $fh->print(TTF_Pack("fL", $self->{'version'}, scalar @$chains));
 
-    foreach (@$chains) {
+    for (@$chains) {
         my $chainStart = $fh->tell();
         my ($featureEntries, $subtables) = ($_->{'featureEntries'}, $_->{'subtables'});
         $fh->print(TTF_Pack("LLSS", $_->{'defaultFlags'}, 0, scalar @$featureEntries, scalar @$subtables)); # placeholder for length
-        
-        foreach (@$featureEntries) {
+
+        for (@$featureEntries) {
             $fh->print(TTF_Pack("SSLL", $_->{'type'}, $_->{'setting'}, $_->{'enable'}, $_->{'disable'}));
         }
-        
-        foreach (@$subtables) {
+
+        for (@$subtables) {
             my $subtableStart = $fh->tell();
             my $type = $_->{'type'};
             my $coverage = $type;
             $coverage += 0x4000 if $_->{'direction'} eq 'RL';
             $coverage += 0x2000 if $_->{'orientation'} eq 'VH';
             $coverage += 0x8000 if $_->{'orientation'} eq 'V';
-            
+
             $fh->print(TTF_Pack("SSL", 0, $coverage, $_->{'subFeatureFlags'}));    # placeholder for length
-            
+
             if ($type == 0) {    # rearrangement
                 AAT_write_state_table($fh, $_->{'classes'}, $_->{'states'}, 0);
             }
-            
+
             elsif ($type == 1) {    # contextual
                 my $stHeader = $fh->tell();
                 $fh->print(pack("nnnnn", (0) x 5));    # placeholders for stateSize, classTable, stateArray, entryTable, mappingTables
-                
+
                 my $classTable = $fh->tell() - $stHeader;
                 my $classes = $_->{'classes'};
                 AAT_write_classes($fh, $classes);
-                
+
                 my $stateArray = $fh->tell() - $stHeader;
                 my $states = $_->{'states'};
-                my ($stateSize, $entries) = AAT_write_states($fh, $classes, $stateArray, $states, 
+                my ($stateSize, $entries) = AAT_write_states($fh, $classes, $stateArray, $states,
                         sub {
                             my $actions = $_->{'actions'};
                             ( $_->{'flags'}, @$actions )
@@ -371,7 +369,7 @@ sub out
 
                 my $entryTable = $fh->tell() - $stHeader;
                 my $offset = ($entryTable + 8 * @$entries) / 2;
-                foreach (@$entries) {
+                for (@$entries) {
                     my ($nextState, $flags, @parts) = split /,/;
                     $fh->print(pack("nnnn", $nextState, $flags, map { $_ eq "" ? 0 : $_ + $offset } @parts));
                 }
@@ -379,35 +377,35 @@ sub out
                 my $mappingTables = $fh->tell() - $stHeader;
                 my $mappings = $_->{'mappings'};
                 $fh->print(pack("n*", @$mappings));
-                
+
                 my $loc = $fh->tell();
                 $fh->seek($stHeader, IO::File::SEEK_SET);
                 $fh->print(pack("nnnnn", $stateSize, $classTable, $stateArray, $entryTable, $mappingTables));
                 $fh->seek($loc, IO::File::SEEK_SET);
             }
-            
+
             elsif ($type == 2) {    # ligature
                 my $stHeader = $fh->tell();
                 $fh->print(pack("nnnnnnn", (0) x 7));    # placeholders for stateSize, classTable, stateArray, entryTable, actionLists, components, ligatures
-            
+
                 my $classTable = $fh->tell() - $stHeader;
                 my $classes = $_->{'classes'};
                 AAT_write_classes($fh, $classes);
-                
+
                 my $stateArray = $fh->tell() - $stHeader;
                 my $states = $_->{'states'};
-                
+
                 my ($stateSize, $entries) = AAT_write_states($fh, $classes, $stateArray, $states,
                         sub {
                             ( $_->{'flags'} & 0xc000, $_->{'actions'} )
                         }
                     );
-                
+
                 my $actionLists = $_->{'actionLists'};
                 my %actionListOffset;
                 my $actionListDataLength = 0;
                 my @actionListEntries;
-                foreach (0 .. $#$entries) {
+                for (0 .. $#$entries) {
                     my ($nextState, $flags, $offset) = split(/,/, $entries->[$_]);
                     if ($offset eq "") {
                         $offset = undef;
@@ -428,18 +426,18 @@ sub out
                 }
                 my $entryTable = $fh->tell() - $stHeader;
                 my $ligActionLists = ($entryTable + @$entries * 4 + 3) & ~3;
-                foreach (@$entries) {
+                for (@$entries) {
                     $_->[2] += $ligActionLists if defined $_->[2];
                     $fh->print(pack("nn", $_->[0], $_->[1] + $_->[2]));
                 }
                 $fh->print(pack("C*", (0) x ($ligActionLists - $entryTable - @$entries * 4)));
-                
+
                 die "internal error" if $fh->tell() != $ligActionLists + $stHeader;
-                
+
                 my $componentTable = $fh->tell() - $stHeader + $actionListDataLength;
                 my $actionList;
-                foreach $actionList (@actionListEntries) {
-                    foreach (0 .. $#$actionList) {
+                for $actionList (@actionListEntries) {
+                    for (0 .. $#$actionList) {
                         my $action = $actionList->[$_];
                         my $val = $action->{'component'} + $componentTable / 2;
                         $val += 0x40000000 if $val < 0;
@@ -455,27 +453,27 @@ sub out
                 my $components = $_->{'components'};
                 my $ligatureTable = $componentTable + @$components * 2;
                 $fh->print(pack("n*", map { (index($_, '+') >= 0 ? $ligatureTable : 0) + $_ } @$components));
-                
+
                 my $ligatures = $_->{'ligatures'};
                 $fh->print(pack("n*", @$ligatures));
-                
+
                 my $loc = $fh->tell();
                 $fh->seek($stHeader, IO::File::SEEK_SET);
                 $fh->print(pack("nnnnnnn", $stateSize, $classTable, $stateArray, $entryTable, $ligActionLists, $componentTable, $ligatureTable));
                 $fh->seek($loc, IO::File::SEEK_SET);
             }
-            
+
             elsif ($type == 4) {    # non-contextual
                 AAT_write_lookup($fh, $_->{'format'}, $_->{'lookup'}, 2, undef);
             }
-            
+
             elsif ($type == 5) {    # insertion
             }
-            
+
             else {
                 die "unknown subtable type";
             }
-            
+
             my $length = $fh->tell() - $subtableStart;
             my $padBytes = (4 - ($length & 3)) & 3;
             $fh->print(pack("C*", (0) x $padBytes));
@@ -484,7 +482,7 @@ sub out
             $fh->print(pack("n", $length));
             $fh->seek($subtableStart + $length, IO::File::SEEK_SET);
         }
-        
+
         my $chainLength = $fh->tell() - $chainStart;
         $fh->seek($chainStart + 4, IO::File::SEEK_SET);
         $fh->print(pack("N", $chainLength));
@@ -498,34 +496,33 @@ Prints a human-readable representation of the table
 
 =cut
 
-sub print
-{
+sub print {
     my ($self, $fh) = @_;
-    
+
     $self->read;
     my $feat = $self->{' PARENT'}->{'feat'};
     $feat->read;
     my $post = $self->{' PARENT'}->{'post'};
     $post->read;
-    
+
     $fh = 'STDOUT' unless defined $fh;
 
     $fh->printf("version %f\n", $self->{'version'});
-    
+
     my $chains = $self->{'chains'};
-    foreach (@$chains) {
+    for (@$chains) {
         my $defaultFlags = $_->{'defaultFlags'};
         $fh->printf("chain: defaultFlags = %08x\n", $defaultFlags);
-        
+
         my $featureEntries = $_->{'featureEntries'};
-        foreach (@$featureEntries) {
+        for (@$featureEntries) {
             $fh->printf("\tfeature %d, setting %d : enableFlags = %08x, disableFlags = %08x # '%s: %s'\n",
                         $_->{'type'}, $_->{'setting'}, $_->{'enable'}, $_->{'disable'},
                         $feat->settingName($_->{'type'}, $_->{'setting'}));
         }
-        
+
         my $subtables = $_->{'subtables'};
-        foreach (@$subtables) {
+        for (@$subtables) {
             my $type = $_->{'type'};
             my $subFeatureFlags = $_->{'subFeatureFlags'};
             $fh->printf("\n\t%s table, %s, %s, subFeatureFlags = %08x # %s (%s)\n",
@@ -536,7 +533,7 @@ sub print
                                 join(": ", $feat->settingName($_->{'type'}, $_->{'setting'}) )
                             } grep { ($_->{'enable'} & $subFeatureFlags) != 0 } @$featureEntries
                         ) );
-            
+
             if ($type == 0) {    # rearrangement
                 print_classes_($fh, $_, $post);
 
@@ -546,10 +543,10 @@ sub print
                                 "ABx->xAB", "ABx->xBA", "xCD->CDx", "xCD->DCx",
                                 "AxCD->CDxA", "AxCD->DCxA", "ABxD->DxAB", "ABxD->DxBA",
                                 "ABxCD->CDxAB", "ABxCD->CDxBA", "ABxCD->DCxAB", "ABxCD->DCxBA");
-                foreach (0 .. $#$states) {
+                for (0 .. $#$states) {
                     $fh->printf("\t\tState %d:", $_);
                     my $state = $states->[$_];
-                    foreach (@$state) {
+                    for (@$state) {
                         my $flags;
                         $flags .= "!" if ($_->{'flags'} & 0x4000);
                         $flags .= "<" if ($_->{'flags'} & 0x8000);
@@ -559,16 +556,16 @@ sub print
                     $fh->print("\n");
                 }
             }
-            
+
             elsif ($type == 1) {    # contextual
                 print_classes_($fh, $_, $post);
-                
+
                 $fh->print("\n");
                 my $states = $_->{'states'};
-                foreach (0 .. $#$states) {
+                for (0 .. $#$states) {
                     $fh->printf("\t\tState %d:", $_);
                     my $state = $states->[$_];
-                    foreach (@$state) {
+                    for (@$state) {
                         my $flags;
                         $flags .= "!" if ($_->{'flags'} & 0x4000);
                         $flags .= "*" if ($_->{'flags'} & 0x8000);
@@ -580,20 +577,20 @@ sub print
 
                 $fh->print("\n");
                 my $mappings = $_->{'mappings'};
-                foreach (0 .. $#$mappings) {
+                for (0 .. $#$mappings) {
                     $fh->printf("\t\tMapping %d: %d [%s]\n", $_, $mappings->[$_], $post->{'VAL'}[$mappings->[$_]]);
                 }
             }
-            
+
             elsif ($type == 2) {    # ligature
                 print_classes_($fh, $_, $post);
-                
+
                 $fh->print("\n");
                 my $states = $_->{'states'};
-                foreach (0 .. $#$states) {
+                for (0 .. $#$states) {
                     $fh->printf("\t\tState %d:", $_);
                     my $state = $states->[$_];
-                    foreach (@$state) {
+                    for (@$state) {
                         my $flags;
                         $flags .= "!" if ($_->{'flags'} & 0x4000);
                         $flags .= "*" if ($_->{'flags'} & 0x8000);
@@ -604,7 +601,7 @@ sub print
 
                 $fh->print("\n");
                 my $actionLists = $_->{'actionLists'};
-                foreach (0 .. $#$actionLists) {
+                for (0 .. $#$actionLists) {
                     $fh->printf("\t\tList %d:\t", $_);
                     my $actionList = $actionLists->[$_];
                     $fh->printf("%s\n", join(", ", map { ($_->{'component'} . ($_->{'store'} ? "*" : "") ) } @$actionList));
@@ -614,36 +611,36 @@ sub print
 
                 $fh->print("\n");
                 my $components = $_->{'components'};
-                foreach (0 .. $#$components) {
+                for (0 .. $#$components) {
                     $fh->printf("\t\tComponent %d: %s\n", $_, $components->[$_]);
                 }
-                
+
                 $fh->print("\n");
                 my $ligatures = $_->{'ligatures'};
-                foreach (0 .. $#$ligatures) {
+                for (0 .. $#$ligatures) {
                     $fh->printf("\t\tLigature %d: %d [%s]\n", $_, $ligatures->[$_], $post->{'VAL'}[$ligatures->[$_]]);
                 }
             }
-            
+
             elsif ($type == 4) {    # non-contextual
                 my $lookup = $_->{'lookup'};
                 $fh->printf("\t\tLookup format %d\n", $_->{'format'});
                 if (defined $lookup) {
-                    foreach (sort { $a <=> $b } keys %$lookup) {
+                    for (sort { $a <=> $b } keys %$lookup) {
                         $fh->printf("\t\t\t%d [%s] -> %d [%s])\n", $_, $post->{'VAL'}[$_], $lookup->{$_}, $post->{'VAL'}[$lookup->{$_}]);
                     }
                 }
             }
-            
+
             elsif ($type == 5) {    # insertion
                 print_classes_($fh, $_, $post);
-                
+
                 $fh->print("\n");
                 my $states = $_->{'states'};
-                foreach (0 .. $#$states) {
+                for (0 .. $#$states) {
                     $fh->printf("\t\tState %d:", $_);
                     my $state = $states->[$_];
-                    foreach (@$state) {
+                    for (@$state) {
                         my $flags;
                         $flags .= "!" if ($_->{'flags'} & 0x4000);
                         $flags .= "*" if ($_->{'flags'} & 0x8000);
@@ -655,12 +652,12 @@ sub print
 
                 $fh->print("\n");
                 my $insertLists = $_->{'insertLists'};
-                foreach (0 .. $#$insertLists) {
+                for (0 .. $#$insertLists) {
                     my $insertList = $insertLists->[$_];
                     $fh->printf("\t\tList %d: %s\n", $_, join(", ", map { $_ . " [" . $post->{'VAL'}[$_] . "]" } @$insertList));
                 }
             }
-            
+
             else {
                 # unknown
             }
@@ -668,12 +665,11 @@ sub print
     }
 }
 
-sub print_classes_
-{
+sub print_classes_ {
     my ($fh, $subtable, $post) = @_;
-    
+
     my $classes = $subtable->{'classes'};
-    foreach (0 .. $#$classes) {
+    for (0 .. $#$classes) {
         my $class = $classes->[$_];
         if (defined $class) {
             $fh->printf("\t\tClass %d:\t%s\n", $_, join(", ", map { $_ . " [" . $post->{'VAL'}[$_] . "]" } @$class));
@@ -681,11 +677,10 @@ sub print_classes_
     }
 }
 
-sub subtable_type_
-{
+sub subtable_type_ {
     my ($val) = @_;
     my ($res);
-    
+
     my @types =    (
                     'Rearrangement',
                     'Contextual',
@@ -695,7 +690,7 @@ sub subtable_type_
                     'Insertion',
                 );
     $res = $types[$val] or ('Undefined (' . $val . ')');
-    
+
     $res;
 }
 
@@ -707,14 +702,14 @@ None known
 
 =head1 AUTHOR
 
-Jonathan Kew L<http://scripts.sil.org/FontUtils>. 
+Jonathan Kew L<http://scripts.sil.org/FontUtils>.
 
 
 =head1 LICENSING
 
-Copyright (c) 1998-2016, SIL International (http://www.sil.org) 
+Copyright (c) 1998-2016, SIL International (http://www.sil.org)
 
-This module is released under the terms of the Artistic License 2.0. 
+This module is released under the terms of the Artistic License 2.0.
 For details, see the full text of the license in the file LICENSE.
 
 

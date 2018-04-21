@@ -1,8 +1,8 @@
-package Font::TTF::Cmap;
+package Font::OTF::Cmap;
 
 =head1 NAME
 
-Font::TTF::Cmap - Character map table
+Font::OTF::Cmap - Character map table
 
 =head1 DESCRIPTION
 
@@ -65,8 +65,8 @@ The following cmap options are controlled by instance variables that start with 
 
 By default, when generating format 4 cmap subtables character codes that point to glyph zero
 (normally called .notdef) are not included in the subtable. In some cases including some of these
-character codes can result in a smaller format 4 subtable. To enable this behavior, set allowholes 
-to non-zero. 
+character codes can result in a smaller format 4 subtable. To enable this behavior, set allowholes
+to non-zero.
 
 =back
 
@@ -76,10 +76,10 @@ to non-zero.
 
 use strict;
 use vars qw(@ISA);
-use Font::TTF::Table;
-use Font::TTF::Utils;
+use Font::OTF::Table;
+use Font::OTF::Utils;
 
-@ISA = qw(Font::TTF::Table);
+@ISA = qw(Font::OTF::Table);
 
 
 =head2 $t->read
@@ -89,8 +89,7 @@ fill in the segmented array accordingly.
 
 =cut
 
-sub read
-{
+sub read {
     my ($self, $keepzeros) = @_;
     $self->SUPER::read or return $self;
 
@@ -101,40 +100,37 @@ sub read
     $fh->read($dat, 4);
     $self->{'Num'} = unpack("x2n", $dat);
     $self->{'Tables'} = [];
-    for ($i = 0; $i < $self->{'Num'}; $i++)
-    {
+    for ($i = 0; $i < $self->{'Num'}; $i++) {
         $s = {};
         $fh->read($dat, 8);
         ($s->{'Platform'}, $s->{'Encoding'}, $s->{'LOC'}) = (unpack("nnN", $dat));
         $s->{'LOC'} += $self->{' OFFSET'};
         push(@{$self->{'Tables'}}, $s);
     }
-    for ($i = 0; $i < $self->{'Num'}; $i++)
-    {
+    for ($i = 0; $i < $self->{'Num'}; $i++) {
         $s = $self->{'Tables'}[$i];
         $fh->seek($s->{'LOC'}, 0);
         $fh->read($dat, 2);
         $form = unpack("n", $dat);
 
         $s->{'Format'} = $form;
-        if ($form == 0)
-        {
+        if ($form == 0) {
             my $j = 0;
 
             $fh->read($dat, 4);
             ($len, $s->{'Ver'}) = unpack('n2', $dat);
             $fh->read($dat, 256);
             $s->{'val'} = {map {$j++; ($_ ? ($j - 1, $_) : ())} unpack("C*", $dat)};
-        } elsif ($form == 6)
-        {
+        }
+        elsif ($form == 6) {
             my ($start, $ecount);
-            
+
             $fh->read($dat, 8);
             ($len, $s->{'Ver'}, $start, $ecount) = unpack('n4', $dat);
             $fh->read($dat, $ecount << 1);
             $s->{'val'} = {map {$start++; ($_ ? ($start - 1, $_) : ())} unpack("n*", $dat)};
-        } elsif ($form == 2)        # Contributed by Huw Rogers
-        {
+        }
+        elsif ($form == 2) {
             $fh->read($dat, 4);
             ($len, $s->{'Ver'}) = unpack('n2', $dat);
             $fh->read($dat, 512);
@@ -174,52 +170,49 @@ sub read
                     }
                 }
             }
-        } elsif ($form == 4)
-        {
+        }
+        elsif ($form == 4) {
             $fh->read($dat, 12);
             ($len, $s->{'Ver'}, $num) = unpack('n3', $dat);
             $num >>= 1;
             $fh->read($dat, $len - 14);
-            for ($j = 0; $j < $num; $j++)
-            {
+            for ($j = 0; $j < $num; $j++) {
                 $end = unpack("n", substr($dat, $j << 1, 2));
                 $start = unpack("n", substr($dat, ($j << 1) + ($num << 1) + 2, 2));
                 $delta = unpack("n", substr($dat, ($j << 1) + ($num << 2) + 2, 2));
                 $delta -= 65536 if $delta > 32767;
                 $range = unpack("n", substr($dat, ($j << 1) + $num * 6 + 2, 2));
-                for ($k = $start; $k <= $end; $k++)
-                {
-                    if ($range == 0 || $range == 65535)         # support the buggy FOG with its range=65535 for final segment
-                    { $id = $k + $delta; }
-                    else
-                    { $id = unpack("n", substr($dat, ($j << 1) + $num * 6 +
-                                        2 + ($k - $start) * 2 + $range, 2)) + $delta; }
+                for ($k = $start; $k <= $end; $k++) {
+                    # support the buggy FOG with its range=65535 for final segment
+                    if ($range == 0 || $range == 65535) { $id = $k + $delta; }
+                    else {
+                    	$id = unpack("n", substr($dat, ($j << 1) + $num * 6 +
+                                        2 + ($k - $start) * 2 + $range, 2)) + $delta;
+                    }
                     $id -= 65536 if $id >= 65536;
                     $s->{'val'}{$k} = $id if ($id || $keepzeros);
                 }
             }
-        } elsif ($form == 8 || $form == 12 || $form == 13)
-        {
+        }
+        elsif ($form == 8 || $form == 12 || $form == 13) {
             $fh->read($dat, 10);
             ($len, $s->{'Ver'}) = unpack('x2N2', $dat);
-            if ($form == 8)
-            {
+            if ($form == 8) {
                 $fh->read($dat, 8196);
                 $num = unpack("N", substr($dat, 8192, 4)); # don't need the map
-            } else
-            {
+            }
+            else {
                 $fh->read($dat, 4);
                 $num = unpack("N", $dat);
             }
             $fh->read($dat, 12 * $num);
-            for ($j = 0; $j < $num; $j++)
-            {
+            for ($j = 0; $j < $num; $j++) {
                 ($start, $end, $sg) = unpack("N3", substr($dat, $j * 12, 12));
                 for ($k = $start; $k <= $end; $k++)
                 { $s->{'val'}{$k} = $form == 13 ? $sg : $sg++; }
             }
-        } elsif ($form == 10)
-        {
+        }
+        elsif ($form == 10) {
             $fh->read($dat, 18);
             ($len, $s->{'Ver'}, $start, $num) = unpack('x2N4', $dat);
             $fh->read($dat, $num << 1);
@@ -238,8 +231,7 @@ Unicode codepoint in it to find the glyph id.
 
 =cut
 
-sub ms_lookup
-{
+sub ms_lookup {
     my ($self, $uni) = @_;
 
     $self->find_ms || return undef unless (defined $self->{' mstable'});
@@ -254,23 +246,20 @@ to it if found. Returns the table it finds.
 
 =cut
 
-sub find_ms
-{
+sub find_ms {
     my ($self) = @_;
     my ($i, $s, $alt, $found);
 
     return $self->{' mstable'} if defined $self->{' mstable'};
     $self->read;
-    for ($i = 0; $i < $self->{'Num'}; $i++)
-    {
+    for ($i = 0; $i < $self->{'Num'}; $i++) {
         $s = $self->{'Tables'}[$i];
-        if ($s->{'Platform'} == 3)
-        {
+        if ($s->{'Platform'} == 3) {
             $self->{' mstable'} = $s;
             return $s if ($s->{'Encoding'} == 10);
             $found = 1 if ($s->{'Encoding'} == 1);
-        } elsif ($s->{'Platform'} == 0 || ($s->{'Platform'} == 2 && $s->{'Encoding'} == 1))
-        { $alt = $s; }
+        }
+        elsif ($s->{'Platform'} == 0 || ($s->{'Platform'} == 2 && $s->{'Encoding'} == 1)) { $alt = $s; }
     }
     $self->{' mstable'} = $alt if ($alt && !$found);
     $self->{' mstable'};
@@ -284,16 +273,14 @@ no Microsoft cmap.
 
 =cut
 
-sub ms_enc
-{
+sub ms_enc {
     my ($self) = @_;
     my ($s);
-    
-    return $self->{' mstable'}{'Encoding'} 
+
+    return $self->{' mstable'}{'Encoding'}
         if (defined $self->{' mstable'} && $self->{' mstable'}{'Platform'} == 3);
-    
-    foreach $s (@{$self->{'Tables'}})
-    {
+
+    for $s (@{$self->{'Tables'}}) {
         return $s->{'Encoding'} if ($s->{'Platform'} == 3);
     }
     return undef;
@@ -307,47 +294,44 @@ just copies from input file to output
 
 =cut
 
-sub out
-{
+sub out {
     my ($self, $fh) = @_;
     my ($loc, $s, $i, $base_loc, $j, @keys);
 
     return $self->SUPER::out($fh) unless $self->{' read'};
 
 
-    $self->{'Tables'} = [sort {$a->{'Platform'} <=> $b->{'Platform'}
-                                || $a->{'Encoding'} <=> $b->{'Encoding'}
-                                || $a->{'Ver'} <=> $b->{'Ver'}} @{$self->{'Tables'}}];
+    $self->{'Tables'} = [
+    	sort {$a->{'Platform'} <=> $b->{'Platform'}
+    	|| $a->{'Encoding'} <=> $b->{'Encoding'}
+        || $a->{'Ver'} <=> $b->{'Ver'}} @{$self->{'Tables'}}
+    ];
     $self->{'Num'} = scalar @{$self->{'Tables'}};
 
     $base_loc = $fh->tell();
     $fh->print(pack("n2", 0, $self->{'Num'}));
 
-    for ($i = 0; $i < $self->{'Num'}; $i++)
-    { $fh->print(pack("nnN", $self->{'Tables'}[$i]{'Platform'}, $self->{'Tables'}[$i]{'Encoding'}, 0)); }
+    for ($i = 0; $i < $self->{'Num'}; $i++) {
+    	$fh->print(pack("nnN", $self->{'Tables'}[$i]{'Platform'}, $self->{'Tables'}[$i]{'Encoding'}, 0));
+    }
 
-    for ($i = 0; $i < $self->{'Num'}; $i++)
-    {
+    for ($i = 0; $i < $self->{'Num'}; $i++) {
         $s = $self->{'Tables'}[$i];
         if ($s->{'Format'} < 8)
         { @keys = sort {$a <=> $b} grep { $_ <= 0xFFFF} keys %{$s->{'val'}}; }
-        else
-        { @keys = sort {$a <=> $b} keys %{$s->{'val'}}; }
+        else { @keys = sort {$a <=> $b} keys %{$s->{'val'}}; }
         $s->{' outloc'} = $fh->tell();
-        if ($s->{'Format'} < 8)
-        { $fh->print(pack("n3", $s->{'Format'}, 0, $s->{'Ver'})); }       # come back for length
-        else
-        { $fh->print(pack("n2N2", $s->{'Format'}, 0, 0, $s->{'Ver'})); }
-            
-        if ($s->{'Format'} == 0)
-        {
+        if ($s->{'Format'} < 8) { $fh->print(pack("n3", $s->{'Format'}, 0, $s->{'Ver'})); }       # come back for length
+        else { $fh->print(pack("n2N2", $s->{'Format'}, 0, 0, $s->{'Ver'})); }
+
+        if ($s->{'Format'} == 0) {
             $fh->print(pack("C256", map {defined $_ ? $_ : 0} @{$s->{'val'}}{0 .. 255}));
-        } elsif ($s->{'Format'} == 6)
-        {
+        } elsif ($s->{'Format'} == 6) {
             $fh->print(pack("n2", $keys[0], $keys[-1] - $keys[0] + 1));
             $fh->print(pack("n*", map {defined $_ ? $_ : 0} @{$s->{'val'}}{$keys[0] .. $keys[-1]}));
-        } elsif ($s->{'Format'} == 2)       # Contributed by Huw Rogers
-        {
+        }
+        elsif ($s->{'Format'} == 2) {      # Contributed by Huw Rogers
+
             my ($g, $k, $h, $l, $m, $n);
             my (@subHeaderKeys, @subHeaders, $subHeader, @glyphIndexArray);
             $n = 0;
@@ -360,7 +344,8 @@ sub out
                     $subHeader = [ $l, 1, 0, 0, [ $g ] ];
                     $subHeaders[$k = $n++] = $subHeader;
                     $subHeaderKeys[$h] = $k;
-                } else {
+                }
+                else {
                     $subHeader = $subHeaders[$k];
                     $m = ($l - $subHeader->[0] + 1) - $subHeader->[1];
                     $subHeader->[1] += $m;
@@ -372,6 +357,7 @@ sub out
             $subHeader->[3] = 0;
             push @glyphIndexArray, @{$subHeader->[4]};
             splice(@$subHeader, 4);
+
             {
                 my @subHeaders_ = sort {@{$a->[4]} <=> @{$b->[4]}} @subHeaders[1..$#subHeaders];
                 my ($f, $d, $r, $subHeader_);
@@ -425,8 +411,8 @@ sub out
                 ));
             }
             $fh->print(pack('n*', @glyphIndexArray));
-        } elsif ($s->{'Format'} == 4)
-        {
+        }
+        elsif ($s->{'Format'} == 4) {
             my (@starts, @ends, @deltas, @range);
 
             # There appears to be a bug in Windows that requires the final 0xFFFF (sentry)
@@ -437,16 +423,14 @@ sub out
             # Instead, for now *remove* 0xFFFF from the USV list, and add a segement
             # for it after all the other segments are computed.
             pop @keys if $keys[-1] == 0xFFFF;
-            
+
             # Step 1: divide into maximal length idDelta runs
-            
+
             my ($prevUSV, $prevgid);
-            for ($j = 0; $j <= $#keys; $j++)
-            {
+            for ($j = 0; $j <= $#keys; $j++) {
                 my $u = $keys[$j];
                 my $g = $s->{'val'}{$u};
-                if ($j == 0 || $u != $prevUSV+1 || $g != $prevgid+1)
-                {
+                if ($j == 0 || $u != $prevUSV+1 || $g != $prevgid+1) {
                     push @ends, $prevUSV unless $j == 0;
                     push @starts, $u;
                     push @range, 0;
@@ -455,28 +439,23 @@ sub out
                 $prevgid = $g;
             }
             push @ends, $prevUSV;
-            
+
             # Step 2: find each macro-range
-            
+
             my ($start, $end);  # Start and end of macro-range
-            for ($start = 0; $start < $#starts; $start++)
-            {
+            for ($start = 0; $start < $#starts; $start++) {
                 next if $ends[$start] - $starts[$start]  >  7;      # if count > 8, we always treat this as a run unto itself
-                for ($end = $start+1; $end <= $#starts; $end++)
-                {
-                    last if $starts[$end] - $ends[$end-1] > ($self->{' allowholes'} ? 5 : 1) 
+                for ($end = $start+1; $end <= $#starts; $end++) {
+                    last if $starts[$end] - $ends[$end-1] > ($self->{' allowholes'} ? 5 : 1)
                         || $ends[$end] - $starts[$end] > 7;   # gap > 4 or count > 8 so $end is beyond end of macro-range
                 }
                 $end--; #Ending index of this macro-range
-                
+
                 # Step 3: optimize this macro-range (from $start through $end)
-                L1: for ($j = $start; $j < $end; )
-                {
+                L1: for ($j = $start; $j < $end; ) {
                     my $size1 = ($range[$j] ? 8 + 2 * ($ends[$j] - $starts[$j] + 1) : 8); # size of first range (which may now be idRange type)
-                    for (my $k = $j+1; $k <= $end; $k++)
-                    {
-                        if (8 + 2 * ($ends[$k] - $starts[$j] + 1) <= $size1 + 8 * ($k - $j))
-                        {
+                    for (my $k = $j+1; $k <= $end; $k++) {
+                        if (8 + 2 * ($ends[$k] - $starts[$j] + 1) <= $size1 + 8 * ($k - $j)) {
                             # Need to coalesce $j..$k into $j:
                             $ends[$j] = $ends[$k];
                             $range[$j] = 1;         # for now use boolean to indicate this is an idRange segment
@@ -490,7 +469,7 @@ sub out
                     # Nothing coalesced
                     $j++;
                 }
-                
+
                 # Finished with this macro-range
                 $start = $end;
             }
@@ -500,28 +479,25 @@ sub out
             push @starts, 0xFFFF;
             push @ends, 0xFFFF;
             push @range, 0;
-            
+
             # What is left is a collection of segments that will represent the cmap in mimimum-sized format 4 subtable
-            
+
             my ($num, $count, $sRange, $eSel, $eShift);
 
             $num = scalar(@starts);
             $count = 0;
-            for ($j = 0; $j < $num; $j++)
-            {
-                if ($range[$j])
-                {
+            for ($j = 0; $j < $num; $j++) {
+                if ($range[$j]) {
                     $range[$j] = ($count + $num - $j) << 1;
                     $count += $ends[$j] - $starts[$j] + 1;
                     push @deltas, 0;
                 }
-                else
-                {
+                else {
                     push @deltas, ($s->{'val'}{$starts[$j]} || 0) - $starts[$j];
                 }
             }
 
-            ($num, $sRange, $eSel, $eShift) = Font::TTF::Utils::TTF_bininfo($num, 2);
+            ($num, $sRange, $eSel, $eShift) = Font::OTF::Utils::TTF_bininfo($num, 2);
             $fh->print(pack("n4", $num * 2, $sRange, $eSel, $eShift));
             $fh->print(pack("n*", @ends));
             $fh->print(pack("n", 0));
@@ -529,27 +505,23 @@ sub out
             $fh->print(pack("n*", @deltas));
             $fh->print(pack("n*", @range));
 
-            for ($j = 0; $j < $num; $j++)
-            {
+            for ($j = 0; $j < $num; $j++) {
                 next if ($range[$j] == 0);
                 $fh->print(pack("n*", map {$_ || 0} @{$s->{'val'}}{$starts[$j] .. $ends[$j]}));
             }
-        } elsif ($s->{'Format'} == 8 || $s->{'Format'} == 12 || $s->{'Format'} == 13)
-        {
+        }
+        elsif ($s->{'Format'} == 8 || $s->{'Format'} == 12 || $s->{'Format'} == 13) {
             my (@jobs, $start, $current, $curr_glyf, $map);
-            
+
             $current = 0; $curr_glyf = 0;
             $map = "\000" x 8192;
-            foreach $j (@keys)
-            {
-                if ($j > 0xFFFF && $s->{'Format'} == 8)
-                {
+            for $j (@keys) {
+                if ($j > 0xFFFF && $s->{'Format'} == 8) {
                     if (defined $s->{'val'}{$j >> 16})
                     { $s->{'Format'} = 12; }
                     vec($map, $j >> 16, 1) = 1;
                 }
-                if ($j != $current + 1 || $s->{'val'}{$j} != ($s->{'Format'} == 13 ? $curr_glyf : $curr_glyf + 1))
-                {
+                if ($j != $current + 1 || $s->{'val'}{$j} != ($s->{'Format'} == 13 ? $curr_glyf : $curr_glyf + 1)) {
                     push (@jobs, [$start, $current, $s->{'Format'} == 13 ? $curr_glyf : $curr_glyf - ($current - $start)]) if (defined $start);
                     $start = $j; $current = $j; $curr_glyf = $s->{'val'}{$j};
                 }
@@ -559,21 +531,19 @@ sub out
             push (@jobs, [$start, $current, $s->{'Format'} == 13 ? $curr_glyf : $curr_glyf - ($current - $start)]) if (defined $start);
             $fh->print($map) if ($s->{'Format'} == 8);
             $fh->print(pack('N', $#jobs + 1));
-            foreach $j (@jobs)
-            { $fh->print(pack('N3', @{$j})); }
-        } elsif ($s->{'Format'} == 10)
-        {
+            for $j (@jobs) { $fh->print(pack('N3', @{$j})); }
+        }
+        elsif ($s->{'Format'} == 10) {
             $fh->print(pack('N2', $keys[0], $keys[-1] - $keys[0] + 1));
             $fh->print(pack('n*', $s->{'val'}{$keys[0] .. $keys[-1]}));
         }
 
         $loc = $fh->tell();
-        if ($s->{'Format'} < 8)
-        {
+        if ($s->{'Format'} < 8) {
             $fh->seek($s->{' outloc'} + 2, 0);
             $fh->print(pack("n", $loc - $s->{' outloc'}));
-        } else
-        {
+        }
+        else {
             $fh->seek($s->{' outloc'} + 4, 0);
             $fh->print(pack("N", $loc - $s->{' outloc'}));
         }
@@ -591,8 +561,7 @@ Outputs the elements of the cmap in XML. We only need to process val here
 
 =cut
 
-sub XML_element
-{
+sub XML_element {
     my ($self, $context, $depth, $k, $val) = @_;
     my ($fh) = $context->{'fh'};
     my ($i);
@@ -601,8 +570,9 @@ sub XML_element
     return $self->SUPER::XML_element($context, $depth, $k, $val) unless ($k eq 'val');
 
     $fh->print("$depth<mappings>\n");
-    foreach $i (sort {$a <=> $b} keys %{$val})
-    { $fh->printf("%s<map code='%04X' glyph='%s'/>\n", $depth . $context->{'indent'}, $i, $val->{$i}); }
+    for $i (sort {$a <=> $b} keys %{$val}) {
+    	$fh->printf("%s<map code='%04X' glyph='%s'/>\n", $depth . $context->{'indent'}, $i, $val->{$i});
+    }
     $fh->print("$depth</mappings>\n");
     $self;
 }
@@ -615,8 +585,7 @@ must be bad and should be deleted or whatever.
 
 =cut
 
-sub minsize
-{
+sub minsize {
     return 4;
 }
 
@@ -632,36 +601,31 @@ be re-introduced as necessary depending on the cmap format.
 
 =cut
 
-sub update
-{
+sub update {
     my ($self) = @_;
     my ($max, $code, $gid, @keep);
-    
+
     return undef unless ($self->SUPER::update);
 
-    foreach my $s (@{$self->{'Tables'}})
-    {
+    for my $s (@{$self->{'Tables'}}) {
         $max = 0;
-        while (($code, $gid) = each %{$s->{'val'}})
-        {
-            if ($gid)
-            {
+        while (($code, $gid) = each %{$s->{'val'}}) {
+            if ($gid) {
                 # remember max USV
                 $max = $code if $max < $code;
             }
-            else
-            {
+            else {
                 # Remove unneeded key
                 delete $s->{'val'}{$code};  # nb: this is a safe delete according to perldoc perlfunc.
             }
         }
         push @keep, $s unless $s->{'Platform'} == 3 && $s->{'Encoding'} == 10 && $s->{'Format'} == 12 && $max <= 0xFFFF;
     }
-    
-    $self->{'Tables'} = [ @keep ];  
-    
+
+    $self->{'Tables'} = [ @keep ];
+
     delete $self->{' mstable'};     # Force rediscovery of this.
-    
+
     $self;
 }
 
@@ -684,18 +648,16 @@ than one Unicode value. The arrays are unsorted. Otherwise store any one unicode
 
 =cut
 
-sub reverse
-{
+sub revers {
     my ($self, %opt) = @_;
     my ($table) = defined $opt{'tnum'} ? $self->{'Tables'}[$opt{'tnum'}] : $self->find_ms;
     my (@res, $code, $gid);
 
-    while (($code, $gid) = each(%{$table->{'val'}}))
-    {
-        if ($opt{'array'})
-        { push (@{$res[$gid]}, $code); }
-        else
-        { $res[$gid] = $code unless (defined $res[$gid] && $res[$gid] > 0 && $res[$gid] < $code); }
+    while (($code, $gid) = each(%{$table->{'val'}})) {
+        if ($opt{'array'}) { push (@{$res[$gid]}, $code); }
+        else {
+        	$res[$gid] = $code unless (defined $res[$gid] && $res[$gid] > 0 && $res[$gid] < $code);
+        }
     }
     @res;
 }
@@ -708,8 +670,7 @@ Returns whether the table of a given index is known to be a unicode table
 
 =cut
 
-sub is_unicode
-{
+sub is_unicode {
     my ($self, $index) = @_;
     my ($pid, $eid) = ($self->{'Tables'}[$index]{'Platform'}, $self->{'Tables'}[$index]{'Encoding'});
 
@@ -730,14 +691,14 @@ Format 14 (Unicode Variation Sequences) cmaps are not supported.
 
 =head1 AUTHOR
 
-Martin Hosken L<http://scripts.sil.org/FontUtils>. 
+Martin Hosken L<http://scripts.sil.org/FontUtils>.
 
 
 =head1 LICENSING
 
-Copyright (c) 1998-2016, SIL International (http://www.sil.org) 
+Copyright (c) 1998-2016, SIL International (http://www.sil.org)
 
-This module is released under the terms of the Artistic License 2.0. 
+This module is released under the terms of the Artistic License 2.0.
 For details, see the full text of the license in the file LICENSE.
 
 

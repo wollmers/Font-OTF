@@ -1,8 +1,8 @@
-package Font::TTF::Ttc;
+package Font::OTF::Ttc;
 
 =head1 NAME
 
-Font::TTF::Ttc - Truetype Collection class
+Font::OTF::Ttc - Truetype Collection class
 
 =head1 DESCRIPTION
 
@@ -41,7 +41,7 @@ The following instance variable does not start with a space
 
 =item directs
 
-An array of directories (Font::TTF::Font objects) for each sub-font in the directory
+An array of directories (Font::OTF::Font objects) for each sub-font in the directory
 
 =back
 
@@ -56,26 +56,24 @@ use IO::File;
 
 $VERSION = 0.0001;
 
-=head2 Font::TTF::Ttc->open($fname)
+=head2 Font::OTF::Ttc->open($fname)
 
 Opens and reads the given filename as a TrueType Collection. Reading a collection
 involves reading each of the directories which go to make up the collection.
 
 =cut
 
-sub open
-{
+sub open {
     my ($class, $fname) = @_;
     my ($self) = {};
     my ($fh);
 
-    unless (ref($fname))
-    {
+    unless (ref($fname)) {
         $fh = IO::File->new($fname) or return undef;
         binmode $fh;
-    } else
-    { $fh = $fname; }
-    
+    }
+    else { $fh = $fname; }
+
     bless $self, $class;
     $self->{' INFILE'} = $fh;
     $self->{' fname'} = $fname;
@@ -90,8 +88,7 @@ Reads a Collection by reading all the directories in the collection
 
 =cut
 
-sub read
-{
+sub read {
     my ($self) = @_;
     my ($fh) = $self->{' INFILE'};
     my ($dat, $ttc, $ver, $num, $i, $loc);
@@ -101,15 +98,13 @@ sub read
 
     return undef unless $ttc eq "ttcf";
     $fh->read($dat, $num << 2);
-    for ($i = 0; $i < $num; $i++)
-    {
-        $loc = unpack("N", substr($dat, $i << 2, 4));       
-        $self->{'directs'}[$i] = Font::TTF::Font->new('INFILE' => $fh,
+    for ($i = 0; $i < $num; $i++) {
+        $loc = unpack("N", substr($dat, $i << 2, 4));
+        $self->{'directs'}[$i] = Font::OTF::Font->new('INFILE' => $fh,
                                                 'PARENT' => $self,
                                                 'OFFSET' => $loc) || return undef;
     }
-    for ($i = 0; $i < $num; $i++)
-    { $self->{'directs'}[$i]->read; }
+    for ($i = 0; $i < $num; $i++) { $self->{'directs'}[$i]->read; }
     $self;
 }
 
@@ -123,13 +118,11 @@ a TrueType font, collection or otherwise.
 
 =cut
 
-sub find
-{
+sub find {
     my ($self, $direct, $name, $check, $off, $len) = @_;
     my ($d);
 
-    foreach $d (@{$self->{'directs'}})
-    {
+    for $d (@{$self->{'directs'}}) {
         return undef if $d eq $direct;
         next unless defined $d->{$name};
         return $d->{$name} if ($d->{$name}{' OFFSET'} == $off);
@@ -144,8 +137,7 @@ Closees any opened files by us
 
 =cut
 
-sub DESTROY
-{
+sub DESTROY {
     my ($self) = @_;
     close ($self->{' INFILE'}) if $self->{' INFILE'};
     undef;
@@ -159,14 +151,14 @@ No known bugs, but then not ever executed!
 
 =head1 AUTHOR
 
-Martin Hosken L<http://scripts.sil.org/FontUtils>. 
+Martin Hosken L<http://scripts.sil.org/FontUtils>.
 
 
 =head1 LICENSING
 
-Copyright (c) 1998-2016, SIL International (http://www.sil.org) 
+Copyright (c) 1998-2016, SIL International (http://www.sil.org)
 
-This module is released under the terms of the Artistic License 2.0. 
+This module is released under the terms of the Artistic License 2.0.
 For details, see the full text of the license in the file LICENSE.
 
 

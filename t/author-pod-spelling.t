@@ -15,8 +15,31 @@ if ( $@ ) {
 }
 else {
   add_stopwords(qw(
-     Helmut
-     Wollmersdorfer
+Helmut
+Wollmersdorfer
+Cmap
+DSIG
+GPOS
+GSUB
+Hosken
+MBCS
+SIL
+TTC
+TTCs
+TTF
+TTFs
+TrueType
+Truetype
+WOFF
+fname
+isDirty
+lang
+nocompress
+nocsum
+noharmony
+tablelist
+tagnames
+unfreed
   ));
   all_pod_files_spelling_ok();
 }

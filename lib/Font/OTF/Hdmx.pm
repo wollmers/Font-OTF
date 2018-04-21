@@ -1,8 +1,8 @@
-package Font::TTF::Hdmx;
+package Font::OTF::Hdmx;
 
 =head1 NAME
 
-Font::TTF::Hdmx - Horizontal device metrics
+Font::OTF::Hdmx - Horizontal device metrics
 
 =head1 DESCRIPTION
 
@@ -33,7 +33,7 @@ Number of device tables.
 use strict;
 use vars qw(@ISA);
 
-@ISA = qw(Font::TTF::Table);
+@ISA = qw(Font::OTF::Table);
 
 
 =head2 $t->read
@@ -42,8 +42,7 @@ Reads the table into data structures
 
 =cut
 
-sub read
-{
+sub read {
     my ($self) = @_;
     $self->SUPER::read or return $self;
 
@@ -56,8 +55,7 @@ sub read
     ($self->{'Version'}, $numt, $len) = unpack("nnN", $dat);
     $self->{'Num'} = $numt;
 
-    for ($i = 0; $i < $numt; $i++)
-    {
+    for ($i = 0; $i < $numt; $i++) {
         $fh->read($dat, $len);
         $ppem = unpack("C", $dat);
         $self->{$ppem} = [unpack("C$numg", substr($dat, 2))];
@@ -72,8 +70,7 @@ Outputs the device metrics for this font
 
 =cut
 
-sub out
-{
+sub out {
     my ($self, $fh) = @_;
     my ($numg, $i, $pad, $len, $numt, @ppem, $max);
 
@@ -84,10 +81,9 @@ sub out
     $pad = "\000" x (3 - ($numg + 1) % 4);
     $len = $numg + 2 + length($pad);
     $fh->print(pack("nnN", 0, $#ppem + 1, $len));
-    for $i (@ppem)
-    {
+    for $i (@ppem) {
         $max = 0;
-        foreach (@{$self->{$i}}[0..($numg - 1)])
+        for (@{$self->{$i}}[0..($numg - 1)])
         { $max = $_ if $_ > $max; }
         $fh->print(pack("C*", $i, $max, @{$self->{$i}}[0..($numg - 1)]) . $pad);
     }
@@ -101,10 +97,7 @@ must be bad and should be deleted or whatever.
 
 =cut
 
-sub minsize
-{
-    return 8;
-}
+sub minsize { return 8; }
 
 
 =head2 $t->tables_do(&func)
@@ -113,12 +106,11 @@ For each subtable it calls &sub($ref, $ppem)
 
 =cut
 
-sub tables_do
-{
+sub tables_do {
     my ($self, $func) = @_;
     my ($i);
 
-    foreach $i (grep(/^\d+$/, %$self))
+    for $i (grep(/^\d+$/, %$self))
     { &$func($self->{$i}, $i); }
     $self;
 }
@@ -130,8 +122,7 @@ Outputs device metrics a little more tidily
 
 =cut
 
-sub XML_element
-{
+sub XML_element {
     my ($self) = shift;
     my ($context, $depth, $key, $value) = @_;
     my ($fh) = $context->{'fh'};
@@ -139,8 +130,7 @@ sub XML_element
 
     return $self->SUPER::XML_element(@_) if (ref($value) ne 'ARRAY');
     $fh->print("$depth<metrics ppem='$key'>\n");
-    for ($i = 0; $i <= $#{$value}; $i += 25)
-    {
+    for ($i = 0; $i <= $#{$value}; $i += 25) {
         $fh->print("$depth$context->{'indent'}". join(' ', @{$value}[$i .. $i + 24]) . "\n");
     }
     $fh->print("$depth</metrics>\n");
@@ -155,14 +145,14 @@ None known
 
 =head1 AUTHOR
 
-Martin Hosken L<http://scripts.sil.org/FontUtils>. 
+Martin Hosken L<http://scripts.sil.org/FontUtils>.
 
 
 =head1 LICENSING
 
-Copyright (c) 1998-2016, SIL International (http://www.sil.org) 
+Copyright (c) 1998-2016, SIL International (http://www.sil.org)
 
-This module is released under the terms of the Artistic License 2.0. 
+This module is released under the terms of the Artistic License 2.0.
 For details, see the full text of the license in the file LICENSE.
 
 

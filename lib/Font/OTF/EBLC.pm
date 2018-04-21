@@ -1,8 +1,8 @@
-package Font::TTF::EBLC;
+package Font::OTF::EBLC;
 
 =head1 NAME
 
-Font::TTF::EBLC - Embeeded Bitmap Location Table
+Font::OTF::EBLC - Embeeded Bitmap Location Table
 
 =head1 DESCRIPTION
 
@@ -66,9 +66,9 @@ An array which contains offsets of EBDT table.
 
 use strict;
 use vars qw(@ISA);
-require Font::TTF::Table;
+require Font::OTF::Table;
 
-@ISA = qw(Font::TTF::Table);
+@ISA = qw(Font::OTF::Table);
 
 
 =head2 $t->read
@@ -77,8 +77,7 @@ Reads the location information of embedded bitmap from the TTF file into memory
 
 =cut
 
-sub read
-{
+sub read {
     my ($self) = @_;
 
     $self->SUPER::read or return $self;
@@ -153,8 +152,8 @@ sub read
         # indexSubTable
         # indexSubHeader
         $fh->read($dat, 8);
-        ($bst->{'indexFormat'}, 
-         $bst->{'imageFormat'}, 
+        ($bst->{'indexFormat'},
+         $bst->{'imageFormat'},
          $bst->{'imageDataOffset'}) = unpack("nnN", $dat);
 
         die "Only indexFormat == 1 is supported" unless ($bst->{'indexFormat'} == 1);
@@ -182,8 +181,7 @@ Outputs the location information of embedded bitmap for this font.
 
 =cut
 
-sub out
-{
+sub out {
     my ($self, $fh) = @_;
     my ($i);
 
@@ -197,14 +195,14 @@ sub out
     for ($i = 0; $i < $self->{'Num'}; $i++) {
         my ($bst) = $bst_array->[$i];
 
-        $fh->print(pack("NNNN", 
+        $fh->print(pack("NNNN",
                         $bst->{'indexSubTableArrayOffset'},
                         $bst->{'indexTablesSize'},
                         $bst->{'numberOfIndexSubTables'},
                         $bst->{'colorRef'}));
         $fh->print(pack("cccccccccccc", @{$bst->{'hori'}}));
         $fh->print(pack("cccccccccccc", @{$bst->{'vert'}}));
-        $fh->print(pack("nnCCCC", $bst->{'startGlyphIndex'}, 
+        $fh->print(pack("nnCCCC", $bst->{'startGlyphIndex'},
                         $bst->{'endGlyphIndex'}, $bst->{'ppemX'},
                         $bst->{'ppemY'}, $bst->{'bitDepth'}, $bst->{'flags'}));
     }
@@ -222,7 +220,7 @@ sub out
                        $ista->{'additionalOffsetToIndexSubtable'});
         }
 
-        $fh->print(pack("nnN", $bst->{'indexFormat'}, $bst->{'imageFormat'}, 
+        $fh->print(pack("nnN", $bst->{'indexFormat'}, $bst->{'imageFormat'},
                         $bst->{'imageDataOffset'}));
 
         die "Only indexFormat == 1 is supported" unless ($bst->{'indexFormat'} == 1);
@@ -241,16 +239,16 @@ Only indexFormat ==1 is implemented.  XML output is not supported (yet).
 
 =head1 AUTHOR
 
-NIIBE Yutaka L<mailto:gniibe@fsij.org>.  
+NIIBE Yutaka L<mailto:gniibe@fsij.org>.
 This was written at the CodeFest Akihabara 2006 hosted by FSIJ.
 
 Patch sent with licensing requirements??
 
 =head1 LICENSING
 
-Copyright (c) 1998-2016, SIL International (http://www.sil.org) 
+Copyright (c) 1998-2016, SIL International (http://www.sil.org)
 
-This module is released under the terms of the Artistic License 2.0. 
+This module is released under the terms of the Artistic License 2.0.
 For details, see the full text of the license in the file LICENSE.
 
 

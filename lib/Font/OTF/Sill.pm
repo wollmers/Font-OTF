@@ -1,8 +1,8 @@
-package Font::TTF::Sill;
+package Font::OTF::Sill;
 
 =head1 NAME
 
-Font::TTF::Sill - Graphite language mapping table
+Font::OTF::Sill - Graphite language mapping table
 
 =head1 DESCRIPTION
 
@@ -28,13 +28,12 @@ feature id and is held as a long.
 
 =cut
 
-use Font::TTF::Utils;
-require Font::TTF::Table;
+use Font::OTF::Utils;
+require Font::OTF::Table;
 
-@ISA = qw(Font::TTF::Table);
+@ISA = qw(Font::OTF::Table);
 
-sub read
-{
+sub read {
     my ($self) = @_;
     my ($num, $i, $j);
 
@@ -43,13 +42,12 @@ sub read
 
     ($self->{'version'}, $num) = TTF_Unpack("vS", $self->{' dat'});
 
-    foreach $i (1 .. $num)        # ignore bogus entry at end
-    {
+    for $i (1 .. $num) {       # ignore bogus entry at end
+
         my ($lid, $numf, $offset) = unpack("A4nn", substr($self->{' dat'}, $i * 8 + 4));      # 12 - 8 = 4 since i starts at 1. A4 strips nulls
         my (@settings);
 
-        foreach $j (1 .. $numf)
-        {
+        for $j (1 .. $numf) {
             my ($fid, $val) = TTF_Unpack("Ls", substr($self->{' dat'}, $offset + $j * 8 - 8));
             push (@settings, [$fid, $val]);
         }
@@ -60,8 +58,7 @@ sub read
     $self;
 }
 
-sub out
-{
+sub out {
     my ($self, $fh) = @_;
     my ($num, $range, $select, $shift) = TTF_bininfo(scalar keys %{$self->{'langs'}}, 1);
     my ($offset) = $num * 8 + 20;   #header = 12, dummy = 8
@@ -69,39 +66,33 @@ sub out
 
     return $self->SUPER::out($fh) unless ($self->{' read'});
     $fh->print(TTF_Pack("vSSSS", $self->{'version'}, $num, $range, $select, $shift));
-    foreach $k ((sort keys %{$self->{'langs'}}), '+1')
-    {
+    for $k ((sort keys %{$self->{'langs'}}), '+1') {
         my ($numf) = scalar @{$self->{'langs'}{$k}} unless ($k eq '+1');
         $fh->print(pack("a4nn", $k, $numf, $offset));
         $offset += $numf * 8;
     }
 
-    foreach $k (sort keys %{$self->{'langs'}})
-    {
-        foreach $s (@{$self->{'langs'}{$k}})
+    for $k (sort keys %{$self->{'langs'}}) {
+        for $s (@{$self->{'langs'}{$k}})
         { $fh->print(TTF_Pack("LsS", @{$s}, 0)); }
     }
     $self;
 }
 
-sub XML_element
-{
+sub XML_element {
     my ($self) = shift;
     my ($context, $depth, $key, $dat) = @_;
     my ($fh) = $context->{'fh'};
     my ($k, $s);
 
     return $self->SUPER::XML_element(@_) unless ($key eq 'langs');
-    foreach $k (sort keys %{$self->{'langs'}})
-    {
+    for $k (sort keys %{$self->{'langs'}}) {
         $fh->printf("%s<lang id='%s'>\n", $depth, $k);
-        foreach $s (@{$self->{'langs'}{$k}})
-        {
+        for $s (@{$self->{'langs'}{$k}}) {
             my ($fid) = $s->[0];
             if ($fid > 0x00FFFFFF)
             { $fid = unpack("A4", pack ("N", $fid)); }
-            else
-            { $fid = sprintf("%d", $fid); }
+            else { $fid = sprintf("%d", $fid); }
             $fh->printf("%s%s<feature id='%s' value='%d'/>\n",
                 $depth, $context->{'indent'}, $fid, $s->[1]);
         }
@@ -117,10 +108,7 @@ must be bad and should be deleted or whatever.
 
 =cut
 
-sub minsize
-{
-    return 6;
-}
+sub minsize { return 6; }
 
 1;
 
@@ -132,9 +120,9 @@ Martin Hosken L<http://scripts.sil.org/FontUtils>.
 
 =head1 LICENSING
 
-Copyright (c) 1998-2016, SIL International (http://www.sil.org) 
+Copyright (c) 1998-2016, SIL International (http://www.sil.org)
 
-This module is released under the terms of the Artistic License 2.0. 
+This module is released under the terms of the Artistic License 2.0.
 For details, see the full text of the license in the file LICENSE.
 
 

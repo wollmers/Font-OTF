@@ -1,8 +1,8 @@
-package Font::TTF::Vmtx;
+package Font::OTF::Vmtx;
 
 =head1 NAME
 
-Font::TTF::Vmtx - Vertical Metrics
+Font::OTF::Vmtx - Vertical Metrics
 
 =head1 DESCRIPTION
 
@@ -34,9 +34,9 @@ An array containing the top side bearing for each glyph
 
 use strict;
 use vars qw(@ISA);
-require Font::TTF::Hmtx;
+require Font::OTF::Hmtx;
 
-@ISA = qw(Font::TTF::Hmtx);
+@ISA = qw(Font::OTF::Hmtx);
 
 
 =head2 $t->read
@@ -45,8 +45,7 @@ Reads the vertical metrics from the TTF file into memory
 
 =cut
 
-sub read
-{
+sub read {
     my ($self) = @_;
     my ($numh, $numg);
 
@@ -63,8 +62,7 @@ numVMetrics from here
 
 =cut
 
-sub out
-{
+sub out {
     my ($self, $fh) = @_;
     my ($numg) = $self->{' PARENT'}{'maxp'}{'numGlyphs'};
     my ($numh) = $self->{' PARENT'}{'vhea'}{'numberOfVMetrics'};
@@ -79,14 +77,14 @@ None known
 
 =head1 AUTHOR
 
-Martin Hosken L<http://scripts.sil.org/FontUtils>. 
+Martin Hosken L<http://scripts.sil.org/FontUtils>.
 
 
 =head1 LICENSING
 
-Copyright (c) 1998-2016, SIL International (http://www.sil.org) 
+Copyright (c) 1998-2016, SIL International (http://www.sil.org)
 
-This module is released under the terms of the Artistic License 2.0. 
+This module is released under the terms of the Artistic License 2.0.
 For details, see the full text of the license in the file LICENSE.
 
 

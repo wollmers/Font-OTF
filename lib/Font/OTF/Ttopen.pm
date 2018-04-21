@@ -1,14 +1,14 @@
-package Font::TTF::Ttopen;
+package Font::OTF::Ttopen;
 
 =head1 NAME
 
-Font::TTF::Ttopen - Opentype superclass for standard Opentype lookup based tables
+Font::OTF::Ttopen - Opentype superclass for standard Opentype lookup based tables
 (GSUB and GPOS)
 
 =head1 DESCRIPTION
 
 Handles all the script, lang, feature, lookup stuff for a
-L<Font::TTF::Gsub>/L<Font::TTF::Gpos> table leaving the class specifics to the
+L<Font::OTF::Gsub>/L<Font::OTF::Gpos> table leaving the class specifics to the
 subclass
 
 =head1 INSTANCE VARIABLES
@@ -177,8 +177,8 @@ match.
 
 =item RULES
 
-The rules are a complex array. In most cases, each element of the array 
-corresponds to an element in the coverage table (governed by the coverage index). 
+The rules are a complex array. In most cases, each element of the array
+corresponds to an element in the coverage table (governed by the coverage index).
 In a few caess, such as when there is
 no coverage table, then there is considered to be only one element in the rules
 array. Each element of the array is itself an array corresponding to the
@@ -277,20 +277,20 @@ are stored relative to another base within the subtable.
 
 =cut
 
-use Font::TTF::Table;
-use Font::TTF::Utils;
-use Font::TTF::Coverage;
+use Font::OTF::Table;
+use Font::OTF::Utils;
+use Font::OTF::Coverage;
 
 use strict;
 use vars qw(@ISA %FeatParams);
 
-@ISA = qw(Font::TTF::Table);
+@ISA = qw(Font::OTF::Table);
 
 %FeatParams = (
-    'ss' => 'Font::TTF::Features::Sset',
-  'cv' => 'Font::TTF::Features::Cvar',
-  'si' => 'Font::TTF::Features::Size',
-  );
+  'ss' => 'Font::OTF::Features::Sset',
+  'cv' => 'Font::OTF::Features::Cvar',
+  'si' => 'Font::OTF::Features::Size',
+);
 
 =head2 $t->read
 
@@ -298,8 +298,7 @@ Reads the table passing control to the subclass to handle the subtable specifics
 
 =cut
 
-sub read
-{
+sub read {
     my ($self) = @_;
     $self->SUPER::read or return $self;
 
@@ -319,23 +318,19 @@ sub read
     $self->{'FEATURES'} = {};
     $l = $self->{'FEATURES'};
     $fh->read($dat, 6 * $nFeat);
-    for ($i = 0; $i < $nFeat; $i++)
-    {
+    for ($i = 0; $i < $nFeat; $i++) {
         ($tag, $off) = unpack("a4n", substr($dat, $i * 6, 6));
-        while (defined $l->{$tag})
-        {
+        while (defined $l->{$tag}) {
             if ($tag =~ m/(.*?)\s_(\d+)$/o)
             { $tag = $1 . " _" . ($2 + 1); }
-            else
-            { $tag .= " _0"; }
+            else { $tag .= " _0"; }
         }
         $l->{$tag}{' OFFSET'} = $off + $oFeat;
         $l->{$tag}{'INDEX'} = $i;
         push (@{$l->{'FEAT_TAGS'}}, $tag);
     }
 
-    foreach $tag (grep {m/^.{4}(?:\s_\d+)?$/o} keys %$l)
-    {
+    for $tag (grep {m/^.{4}(?:\s_\d+)?$/o} keys %$l) {
         $oFeat=$moff + $l->{$tag}{' OFFSET'};
         $fh->seek($oFeat, 0);
         $fh->read($dat, 4);
@@ -343,23 +338,19 @@ sub read
         $fh->read($dat, $nLook * 2);
         $l->{$tag}{'LOOKUPS'} = [unpack("n*", $dat)];
         $l->{$tag}{'PARMS'}="";
-        if ($oParms > 0)
-        {
+        if ($oParms > 0) {
             $FType=$FeatParams{substr($tag,0,2)};
-            if ($FType)
-            {
+            if ($FType) {
                 $t=$FType;
-                if ($^O eq "MacOS")
-                    { $t =~ s/^|::/:/oig; }
-                else
-                    { $t =~ s|::|/|oig; }
+                if ($^O eq "MacOS") { $t =~ s/^|::/:/oig; }
+                else { $t =~ s|::|/|oig; }
                     require "$t.pm";
                 $l->{$tag}{'PARMS'} = $FType->new( INFILE  => $fh,
                                                                                      OFFSET => $oFeat+$oParms);
             $l->{$tag}{'PARMS'}->read;
           }
-        }               
-        
+        }
+
     }
 
 # Now the script/lang hierarchy
@@ -370,18 +361,16 @@ sub read
     $self->{'SCRIPTS'} = {};
     $l = $self->{'SCRIPTS'};
     $fh->read($dat, 6 * $nScript);
-    for ($i = 0; $i < $nScript; $i++)
-    {
+    for ($i = 0; $i < $nScript; $i++) {
         ($tag, $off) = unpack("a4n", substr($dat, $i * 6, 6));
         $off += $oScript;
-        foreach (keys %$l)
+        for (keys %$l)
         { $l->{$tag}{' REFTAG'} = $_ if ($l->{$_}{' OFFSET'} == $off
                                         && !defined $l->{$_}{' REFTAG'}); }
         $l->{$tag}{' OFFSET'} = $off;
     }
 
-    foreach $tag (keys %$l)
-    {
+    for $tag (keys %$l) {
         next if ($l->{$tag}{' REFTAG'});
         $fh->seek($moff + $l->{$tag}{' OFFSET'}, 0);
         $fh->read($dat, 4);
@@ -389,38 +378,34 @@ sub read
         $l->{$tag}{'DEFAULT'}{' OFFSET'} =
                 $dLang + $l->{$tag}{' OFFSET'} if $dLang;
         $fh->read($dat, 6 * $nLang);
-        for ($i = 0; $i < $nLang; $i++)
-        {
+        for ($i = 0; $i < $nLang; $i++) {
             ($lTag, $off) = unpack("a4n", substr($dat, $i * 6, 6));
             $off += $l->{$tag}{' OFFSET'};
             $l->{$tag}{$lTag}{' OFFSET'} = $off;
-            foreach (@{$l->{$tag}{'LANG_TAGS'}}, 'DEFAULT')
+            for (@{$l->{$tag}{'LANG_TAGS'}}, 'DEFAULT')
             { $l->{$tag}{$lTag}{' REFTAG'} = $_ if ($l->{$tag}{$_}{' OFFSET'} == $off
                                                    && !$l->{$tag}{$_}{' REFTAG'}); }
             push (@{$l->{$tag}{'LANG_TAGS'}}, $lTag);
         }
-        foreach $lTag (@{$l->{$tag}{'LANG_TAGS'}}, 'DEFAULT')
-        {
+        for $lTag (@{$l->{$tag}{'LANG_TAGS'}}, 'DEFAULT') {
             next unless defined $l->{$tag}{$lTag};
             next if ($l->{$tag}{$lTag}{' REFTAG'});
             $fh->seek($moff + $l->{$tag}{$lTag}{' OFFSET'}, 0);
             $fh->read($dat, 6);
-            ($l->{$tag}{$lTag}{'RE-ORDER'}, $l->{$tag}{$lTag}{'DEFAULT'}, $nFeat) 
+            ($l->{$tag}{$lTag}{'RE-ORDER'}, $l->{$tag}{$lTag}{'DEFAULT'}, $nFeat)
               = unpack("n3", $dat);
             $fh->read($dat, $nFeat * 2);
             $l->{$tag}{$lTag}{'FEATURES'} = [map {$self->{'FEATURES'}{'FEAT_TAGS'}[$_]} unpack("n*", $dat)];
         }
-        foreach $lTag (@{$l->{$tag}{'LANG_TAGS'}}, 'DEFAULT')
-        {
-            # Make copies of referenced languages for each reference. 
+        for $lTag (@{$l->{$tag}{'LANG_TAGS'}}, 'DEFAULT') {
+            # Make copies of referenced languages for each reference.
             next unless $l->{$tag}{$lTag}{' REFTAG'};
             $temp = $l->{$tag}{$lTag}{' REFTAG'};
             $l->{$tag}{$lTag} = &copy($l->{$tag}{$temp});
             $l->{$tag}{$lTag}{' REFTAG'} = $temp;
         }
     }
-    foreach $tag (keys %$l)
-    {
+    for $tag (keys %$l) {
         next unless $l->{$tag}{' REFTAG'};
         $temp = $l->{$tag}{' REFTAG'};
         $l->{$tag} = &copy($l->{$temp});
@@ -436,26 +421,22 @@ sub read
     $i = 0;
     map { $self->{'LOOKUP'}[$i++]{' OFFSET'} = $_; } unpack("n*", $dat);
 
-    for ($i = 0; $i < $nLook; $i++)
-    {
+    for ($i = 0; $i < $nLook; $i++) {
         $l = $self->{'LOOKUP'}[$i];
         $fh->seek($l->{' OFFSET'} + $moff + $oLook, 0);
         $fh->read($dat, 6);
         ($l->{'TYPE'}, $l->{'FLAG'}, $nSub) = unpack("n3", $dat);
         $fh->read($dat, $nSub * 2);
         my @offsets = unpack("n*", $dat);
-        if ($l->{'FLAG'} & 0x0010)
-        {
+        if ($l->{'FLAG'} & 0x0010) {
             $fh->read($dat, 2);
             $l->{'FILTER'} = unpack("n", $dat);
         }
         my $isExtension = ($l->{'TYPE'} == $self->extension());
-        for ($j = 0; $j < $nSub; $j++)
-        {
+        for ($j = 0; $j < $nSub; $j++) {
             $l->{'SUB'}[$j]{' OFFSET'} = $offsets[$j];
             $fh->seek($moff + $oLook + $l->{' OFFSET'} + $l->{'SUB'}[$j]{' OFFSET'}, 0);
-            if ($isExtension)
-            {
+            if ($isExtension) {
                 $fh->read($dat, 8);
                 my $longOff;
                 (undef, $l->{'TYPE'}, $longOff) = unpack("nnN", $dat);
@@ -476,8 +457,7 @@ start of the subtable to be read
 
 =cut
 
-sub read_sub
-{ }
+sub read_sub { }
 
 
 =head2 $t->extension()
@@ -486,8 +466,7 @@ Returns the lookup number for the extension table that allows access to 32-bit o
 
 =cut
 
-sub extension
-{ }
+sub extension { }
 
 
 =head2 $t->out($fh)
@@ -501,20 +480,18 @@ real data.
 
 =cut
 
-sub out
-{
+sub out {
     my ($self, $fh) = @_;
     my ($i, $j, $base, $off, $tag, $t, $l, $lTag, $oScript, @script, @tags);
     my ($end, $nTags, @offs, $oFeat, $oFtable, $oParms, $FType, $oLook, $nSub, $nSubs, $big, $out);
-    
+
     return $self->SUPER::out($fh) unless $self->{' read'};
 
 # First sort the features
     $i = 0;
     $self->{'FEATURES'}{'FEAT_TAGS'} = [sort grep {m/^.{4}(?:\s_\d+)?$/o} %{$self->{'FEATURES'}}]
-            if (!defined $self->{'FEATURES'}{'FEAT_TAGS'});
-    foreach $t (@{$self->{'FEATURES'}{'FEAT_TAGS'}})
-    { $self->{'FEATURES'}{$t}{'INDEX'} = $i++; }
+    	if (!defined $self->{'FEATURES'}{'FEAT_TAGS'});
+    for $t (@{$self->{'FEATURES'}{'FEAT_TAGS'}}) { $self->{'FEATURES'}{$t}{'INDEX'} = $i++; }
 
     $base = $fh->tell();
     $fh->print(TTF_Pack("v", $self->{'Version'}));
@@ -522,21 +499,17 @@ sub out
     $oScript = $fh->tell() - $base;
     @script = sort grep {length($_) == 4} keys %{$self->{'SCRIPTS'}};
     $fh->print(pack("n", $#script + 1));
-    foreach $t (@script)
-    { $fh->print(pack("a4n", $t, 0)); }
+    for $t (@script) { $fh->print(pack("a4n", $t, 0)); }
 
     $end = $fh->tell();
-    foreach $t (@script)
-    {
+    for $t (@script) {
         $fh->seek($end, 0);
         $tag = $self->{'SCRIPTS'}{$t};
         next if ($tag->{' REFTAG'});
         $tag->{' OFFSET'} = tell($fh) - $base - $oScript;
         $fh->print(pack("n2", 0, $#{$tag->{'LANG_TAGS'}} + 1));
-        foreach $lTag (sort @{$tag->{'LANG_TAGS'}})
-        { $fh->print(pack("a4n", $lTag, 0)); }
-        foreach $lTag (@{$tag->{'LANG_TAGS'}}, 'DEFAULT')
-        {
+        for $lTag (sort @{$tag->{'LANG_TAGS'}}) { $fh->print(pack("a4n", $lTag, 0)); }
+        for $lTag (@{$tag->{'LANG_TAGS'}}, 'DEFAULT') {
             my ($def);
             $l = $tag->{$lTag};
             next if (!defined $l || (defined $l->{' REFTAG'} && $l->{' REFTAG'} ne ''));
@@ -544,44 +517,36 @@ sub out
             if (defined $l->{'DEFAULT'})
 #           { $def = $self->{'FEATURES'}{$l->{'FEATURES'}[$l->{'DEFAULT'}]}{'INDEX'}; }
             { $def = $l->{'DEFAULT'}; }
-            else
-            { $def = -1; }
+            else { $def = -1; }
             $fh->print(pack("n*", $l->{'RE_ORDER'} || 0, $def, $#{$l->{'FEATURES'}} + 1,
                     map {$self->{'FEATURES'}{$_}{'INDEX'} || 0} @{$l->{'FEATURES'}}));
         }
         $end = $fh->tell();
-        if ($tag->{'DEFAULT'}{' REFTAG'} || defined $tag->{'DEFAULT'}{'FEATURES'})
-        {
+        if ($tag->{'DEFAULT'}{' REFTAG'} || defined $tag->{'DEFAULT'}{'FEATURES'}) {
             $fh->seek($base + $oScript + $tag->{' OFFSET'}, 0);
-            if (defined $tag->{'DEFAULT'}{' REFTAG'})
-            {
+            if (defined $tag->{'DEFAULT'}{' REFTAG'}) {
                 my ($ttag);
                 for ($ttag = $tag->{'DEFAULT'}{' REFTAG'}; defined $tag->{$ttag}{' REFTAG'}; $ttag = $tag->{$ttag}{' REFTAG'})
                 { }
                 $off = $tag->{$ttag}{' OFFSET'};
             }
-            else
-            { $off = $tag->{'DEFAULT'}{' OFFSET'}; }
+            else { $off = $tag->{'DEFAULT'}{' OFFSET'}; }
             $fh->print(pack("n", $off));
         }
         $fh->seek($base + $oScript + $tag->{' OFFSET'} + 4, 0);
-        foreach (sort @{$tag->{'LANG_TAGS'}})
-        {
-            if (defined $tag->{$_}{' REFTAG'})
-            {
+        for (sort @{$tag->{'LANG_TAGS'}}) {
+            if (defined $tag->{$_}{' REFTAG'}) {
                 my ($ttag);
                 for ($ttag = $tag->{$_}{' REFTAG'}; defined $tag->{$ttag}{' REFTAG'}; $ttag = $tag->{$ttag}{' REFTAG'})
                 { }
                 $off = $tag->{$ttag}{' OFFSET'};
             }
-            else
-            { $off = $tag->{$_}{' OFFSET'}; }
+            else { $off = $tag->{$_}{' OFFSET'}; }
             $fh->print(pack("a4n", $_, $off));
         }
     }
     $fh->seek($base + $oScript + 2, 0);
-    foreach $t (@script)
-    {
+    for $t (@script) {
         $tag = $self->{'SCRIPTS'}{$t};
         $off = $tag->{' REFTAG'} ? $tag->{$tag->{' REFTAG'}}{' OFFSET'} : $tag->{' OFFSET'};
         $fh->print(pack("a4n", $t, $off));
@@ -592,15 +557,13 @@ sub out
     $nTags = $#{$self->{'FEATURES'}{'FEAT_TAGS'}} + 1;
     $fh->print(pack("n", $nTags));
     $fh->print(pack("a4n", "    ", 0) x $nTags);
-    
-    foreach $t (@{$self->{'FEATURES'}{'FEAT_TAGS'}})
-    {
+
+    for $t (@{$self->{'FEATURES'}{'FEAT_TAGS'}}) {
         $tag = $self->{'FEATURES'}{$t};
         $oFtable = tell($fh) - $base - $oFeat;
         $tag->{' OFFSET'} = $oFtable;
         $fh->print(pack("n*", 0, $#{$tag->{'LOOKUPS'}} + 1, @{$tag->{'LOOKUPS'}}));
-        if ($tag->{'PARMS'})
-        {
+        if ($tag->{'PARMS'}) {
             $end = $fh->tell();
             $oParms = $end - $oFtable - $base - $oFeat;
             $fh->seek($oFtable + $base + $oFeat,0);
@@ -611,30 +574,29 @@ sub out
     }
     $end = $fh->tell();
     $fh->seek($oFeat + $base + 2, 0);
-    foreach $t (@{$self->{'FEATURES'}{'FEAT_TAGS'}})
-    { $fh->print(pack("a4n", $t, $self->{'FEATURES'}{$t}{' OFFSET'})); }
+    for $t (@{$self->{'FEATURES'}{'FEAT_TAGS'}}) {
+    	$fh->print(pack("a4n", $t, $self->{'FEATURES'}{$t}{' OFFSET'}));
+    }
 
     undef $big;
     $fh->seek($end, 0);
     $oLook = $end - $base;
-    
+
     # LookupListTable (including room for offsets to LookupTables)
     $nTags = $#{$self->{'LOOKUP'}} + 1;
     $fh->print(pack("n", $nTags));
     $fh->print(pack("n", 0) x $nTags);
     $end = $fh->tell();     # end of LookupListTable = start of Lookups
-    foreach $tag (@{$self->{'LOOKUP'}})
-    { $nSubs += $self->num_sub($tag); }
-    for ($i = 0; $i < $nTags; $i++)
-    {
+    for $tag (@{$self->{'LOOKUP'}}) { $nSubs += $self->num_sub($tag); }
+    for ($i = 0; $i < $nTags; $i++) {
         $fh->seek($end, 0);
         $tag = $self->{'LOOKUP'}[$i];
         $off = $end - $base - $oLook;   # BH 2004-03-04
         # Is there room, from the start of this i'th lookup, for this and the remaining
         # lookups to be wrapped in extension lookups?
-        if (!defined $big && $off + ($nTags - $i) * 6 + $nSubs * 10 > 65535) # BH 2004-03-04
-        {
-            # Not enough room -- need to start an extension!            
+        if (!defined $big && $off + ($nTags - $i) * 6 + $nSubs * 10 > 65535) { # BH 2004-03-04
+
+            # Not enough room -- need to start an extension!
             my ($k, $ext);
             $ext = $self->extension();
             # Must turn previous lookup into the first extension
@@ -644,8 +606,7 @@ sub out
             $fh->seek($end, 0);
             $big = $i;
             # For this and the remaining lookups, build extensions lookups
-            for ($j = $i; $j < $nTags; $j++)
-            {
+            for ($j = $i; $j < $nTags; $j++) {
                 $tag = $self->{'LOOKUP'}[$j];
                 $nSub = $self->num_sub($tag);
                 $tag->{' OFFSET'} = $fh->tell() - $base - $oLook; # offset to this extension lookup
@@ -657,24 +618,21 @@ sub out
                 for ($k = 0; $k < $nSub; $k++)
                 { $fh->print(pack('nnN', 1, $tag->{'TYPE'}, 0)); }
             }
-            
+
             $tag = $self->{'LOOKUP'}[$i];
             # Leave file positioned after all the extension lookups -- where the referenced lookups will start.
         }
         $tag->{' OFFSET'} = $off unless defined $big;   # BH 2004-03-04
         $nSub = $self->num_sub($tag);
-        if (!defined $big)
-        {
+        if (!defined $big) {
             # LookupTable (including room for subtable offsets)
             $fh->print(pack("nnn", $tag->{'TYPE'}, $tag->{'FLAG'}, $nSub));
             $fh->print(pack("n", 0) x $nSub);
             $fh->print(pack("n", $tag->{'FILTER'})) if $tag->{'FLAG'} & 0x0010;
         }
-        else
-        { $end = $tag->{' EXT_OFFSET'}; } # Extension offsets computed relative to start of first Extension subtable -- corrected later
+        else { $end = $tag->{' EXT_OFFSET'}; } # Extension offsets computed relative to start of first Extension subtable -- corrected later
         my (@offs, $out, @refs);
-        for ($j = 0; $j < $nSub; $j++)
-        {
+        for ($j = 0; $j < $nSub; $j++) {
             my ($ctables) = {};
             my ($base) = length($out);
             push(@offs, tell($fh) - $end + $base);
@@ -683,13 +641,11 @@ sub out
         }
         out_final($fh, $out, \@refs);
         $end = $fh->tell();
-        if (!defined $big)
-        {
+        if (!defined $big) {
             $fh->seek($tag->{' OFFSET'} + $base + $oLook + 6, 0);
             $fh->print(pack("n*", @offs));
         }
-        else
-        {
+        else {
             $fh->seek($tag->{' EXT_OFFSET'}, 0);
             for ($j = 0; $j < $nSub; $j++)
             { $fh->print(pack('nnN', 1, $tag->{'TYPE'}, $offs[$j] - $j * 8)); }
@@ -711,8 +667,7 @@ return that value. Used in out().
 
 =cut
 
-sub num_sub
-{
+sub num_sub {
     my ($self, $lookup) = @_;
 
     return $#{$lookup->{'SUB'}} + 1;
@@ -727,8 +682,7 @@ start of the subtable to be output
 
 =cut
 
-sub out_sub
-{ }
+sub out_sub { }
 
 =head2 $t->dirty
 
@@ -736,8 +690,7 @@ Setting GPOS or GSUB dirty means that OS/2 may need updating, so set it dirty.
 
 =cut
 
-sub dirty
-{
+sub dirty {
     my ($self, $val) = @_;
     my $res = $self->SUPER::dirty ($val);
     $self->{' PARENT'}{'OS/2'}->read->dirty($val) if exists $self->{' PARENT'}{'OS/2'};
@@ -750,40 +703,39 @@ Returns the length of the longest opentype rule in this table.
 
 =cut
 
-sub maxContext
-{
+sub maxContext {
     my ($self) = @_;
-    
+
     # Make sure table is read
     $self->read;
 
     # Calculate my contribution to OS/2 usMaxContext
-    
+
     my ($maxcontext, $l, $s, $r, $m);
-   
-    for $l (@{$self->{'LOOKUP'}})        # Examine each lookup
-    {
-        for $s (@{$l->{'SUB'}})         # Multiple possible subtables for this lookup
-        {
-            for $r (@{$s->{'RULES'}})   # One ruleset for each covered glyph
-            {
-                for $m (@{$r})          # Multiple possible matches for this covered glyph 
-                {
+
+    for $l (@{$self->{'LOOKUP'}}) {       # Examine each lookup
+
+        for $s (@{$l->{'SUB'}}) {        # Multiple possible subtables for this lookup
+
+            for $r (@{$s->{'RULES'}}) {  # One ruleset for each covered glyph
+
+                for $m (@{$r}) {         # Multiple possible matches for this covered glyph
+
                     my $lgt;
                     $lgt++ if exists $s->{'COVERAGE'};  # Count 1 for the coverage table if it exists
-                    for (qw(MATCH POST))                # only Input and Lookahead sequences count (Lookbehind doesn't) -- see OT spec.
-                    {
+                    for (qw(MATCH POST)) {               # only Input and Lookahead sequences count (Lookbehind doesn't) -- see OT spec.
+
                         $lgt += @{$m->{$_}} if exists $m->{$_};
                     }
                     $maxcontext = $lgt if $lgt > $maxcontext;
                 }
             }
-            
+
         }
     }
-    
-    $maxcontext;    
-}    
+
+    $maxcontext;
+}
 
 
 =head2 $t->update
@@ -794,7 +746,7 @@ For all lookups, set/clear 0x0010 bit of flag words based on 'FILTER' value.
 
 Sort COVERAGE table and RULES for all lookups.
 
-Unless $t->{' PARENT'}{' noharmony'} is true, update will make sure that GPOS and GSUB include 
+Unless $t->{' PARENT'}{' noharmony'} is true, update will make sure that GPOS and GSUB include
 the same scripts and languages. Any added scripts and languages will have empty feature sets.
 
 =cut
@@ -802,56 +754,56 @@ the same scripts and languages. Any added scripts and languages will have empty 
 # Assumes we are called on both GSUB and GPOS. So simply ADDS scripts and languages to $self that it finds
 # in the other table.
 
-sub update
-{
+sub update {
     my ($self) = @_;
-    
+
     return undef unless ($self->SUPER::update);
-    
-    if (defined ($self->{'LOOKUP'}))
-    {
-            
+
+    if (defined ($self->{'LOOKUP'})) {
+
         # make flag word agree with mark filter setting:
-        for my $l (@{$self->{'LOOKUP'}})
-        {
+        for my $l (@{$self->{'LOOKUP'}}) {
             if (defined $l->{'FILTER'})
             { $l->{'FLAG'} |= 0x0010; }
             else
             { $l->{'FLAG'} &= ~0x0010; }
         }
-        
-        unless ($Font::TTF::Coverage::dontsort)
-        {
+
+        unless ($Font::OTF::Coverage::dontsort) {
             # Sort coverage tables and rules of all lookups by glyphID
             # The lookup types that need to be sorted are:
-            #    GSUB: 1.2 2 3 4 5.1 6.1 8    (However GSUB type 8 lookups are not yet supported by Font::TTF)
+            #    GSUB: 1.2 2 3 4 5.1 6.1 8    (However GSUB type 8 lookups are not yet supported by Font::OTF)
             #    GPOS: 1.2 2.1 3 4 5 6 7.1 8.1
-            
-            for my $l (@{$self->{'LOOKUP'}})
-            {
+
+            for my $l (@{$self->{'LOOKUP'}}) {
                 next unless defined $l->{'SUB'};
-                for my $sub (@{$l->{'SUB'}})
-                {
-                    if (defined $sub->{'COVERAGE'} and $sub->{'COVERAGE'}{'cover'} and !$sub->{'COVERAGE'}{'dontsort'})
-                    {
+                for my $sub (@{$l->{'SUB'}}) {
+                    if (defined $sub->{'COVERAGE'}
+                    	and $sub->{'COVERAGE'}{'cover'}
+                    	and !$sub->{'COVERAGE'}{'dontsort'}
+                    ) {
                         # OK! Found a lookup with coverage table:
                         my @map = $sub->{'COVERAGE'}->sort();
-                        if (defined $sub->{'RULES'} and ($sub->{'MATCH_TYPE'} =~ /g/ or $sub->{'ACTION_TYPE'} =~ /[gvea]/))
-                        {
+                        if (defined $sub->{'RULES'}
+                        	and ($sub->{'MATCH_TYPE'} =~ /g/
+                        	or $sub->{'ACTION_TYPE'} =~ /[gvea]/)
+                        ) {
                             # And also a RULES table which now needs to be re-sorted
                             my $newrules = [];
-                            foreach (0 .. $#map)
-                            { push @{$newrules}, $sub->{'RULES'}[$map[$_]]; }
+                            for (0 .. $#map) { push @{$newrules}, $sub->{'RULES'}[$map[$_]]; }
                             $sub->{'RULES'} = $newrules;
                         }
                     }
-                        
+
                     # Special case for Mark positioning -- need to also sort the MarkArray
-                    if (exists($sub->{'MARKS'}) and ref($sub->{'MATCH'}[0]) =~ /Cover/ and $sub->{'MATCH'}[0]{'cover'} and !$sub->{'MATCH'}[0]{'dontsort'})
-                    {
+                    if (exists($sub->{'MARKS'})
+                    	and ref($sub->{'MATCH'}[0]) =~ /Cover/
+                    	and $sub->{'MATCH'}[0]{'cover'}
+                    	and !$sub->{'MATCH'}[0]{'dontsort'}
+                    ) {
                         my @map = $sub->{'MATCH'}[0]->sort();
                         my $newmarks = [];
-                        foreach (0 .. $#map)
+                        for (0 .. $#map)
                         { push @{$newmarks}, $sub->{'MARKS'}[$map[$_]]; }
                         $sub->{'MARKS'} = $newmarks;
                     }
@@ -864,33 +816,30 @@ sub update
     return $self if $self->{' PARENT'}{' noharmony'};
 
     # Find my sibling (GSUB or GPOS, depending on which I am)
-    my $sibling = ref($self) eq 'Font::TTF::GSUB' ? 'GPOS' : ref($self) eq 'Font::TTF::GPOS' ? 'GSUB' : undef;
+    my $sibling = ref($self) eq 'Font::OTF::GSUB' ? 'GPOS' : ref($self) eq 'Font::OTF::GPOS' ? 'GSUB' : undef;
     return $self unless $sibling && defined $self->{' PARENT'}{$sibling};
     $sibling = $self->{' PARENT'}{$sibling};
-    
+
     # Look through scripts defined in sibling:
-    for my $sTag (grep {length($_) == 4} keys %{$sibling->{'SCRIPTS'}})
-    {
+    for my $sTag (grep {length($_) == 4} keys %{$sibling->{'SCRIPTS'}}) {
         my $sibScript = $sibling->{'SCRIPTS'}{$sTag};
         $sibScript = $sibling->{$sibScript->{' REFTAG'}} if exists $sibScript->{' REFTAG'} && $sibScript->{' REFTAG'} ne '';
-        
+
         $self->{'SCRIPTS'}{$sTag} = {} unless defined $self->{'SCRIPTS'}{$sTag}; # Create script if not present in $self
-        
+
         my $myScript = $self->{'SCRIPTS'}{$sTag};
         $myScript = $self->{$myScript->{' REFTAG'}} if exists $myScript->{' REFTAG'} && $myScript->{' REFTAG'} ne '';
-                
-        foreach my $lTag (@{$sibScript->{'LANG_TAGS'}})
-        {
+
+        for my $lTag (@{$sibScript->{'LANG_TAGS'}}) {
             # Ok, found a script/lang that is in our sibling.
             next if exists $myScript->{$lTag};  # Already in $self
-            
+
             # Need to create this lang:
             push @{$myScript->{'LANG_TAGS'}}, $lTag;
             $myScript->{$lTag} = { 'FEATURES' => [] };
         }
 
-        if (defined $sibScript->{'DEFAULT'} && !defined $myScript->{'DEFAULT'})
-        {
+        if (defined $sibScript->{'DEFAULT'} && !defined $myScript->{'DEFAULT'}) {
             # Create default lang for this script.
             $myScript->{'DEFAULT'} = { 'FEATURES' => [] };
         }
@@ -910,13 +859,11 @@ Only the top level is copied.
 
 =cut
 
-sub copy
-{
+sub copy {
     my ($ref) = @_;
     my ($res) = {};
 
-    foreach (keys %$ref)
-    { $res->{$_} = $ref->{$_}; }
+    for (keys %$ref) { $res->{$_} = $ref->{$_}; }
     $res;
 }
 
@@ -928,8 +875,7 @@ it has not been read already.
 
 =cut
 
-sub read_cover
-{
+sub read_cover {
     my ($self, $offset, $base, $lookup, $fh, $is_cover) = @_;
     my ($loc) = $fh->tell();
     my ($cover, $str);
@@ -938,7 +884,7 @@ sub read_cover
     $str = sprintf("%X", $base + $offset);
     return $lookup->{' CACHE'}{$str} if defined $lookup->{' CACHE'}{$str};
     $fh->seek($base + $offset, 0);
-    $cover = Font::TTF::Coverage->new($is_cover)->read($fh);
+    $cover = Font::OTF::Coverage->new($is_cover)->read($fh);
     $fh->seek($loc, 0);
     $lookup->{' CACHE'}{$str} = $cover;
     return $cover;
@@ -959,14 +905,12 @@ Uses tricks for Tie::Refhash
 
 =cut
 
-sub ref_cache
-{
+sub ref_cache {
     my ($obj, $cache, $offset, $template) = @_;
 
     return 0 unless defined $obj;
     $template ||= 'n';
-    unless (defined $cache->{"$obj"})
-    { push (@{$cache->{''}}, $obj); }
+    unless (defined $cache->{"$obj"}) { push (@{$cache->{''}}, $obj); }
     push (@{$cache->{"$obj"}}, [$offset, $template]);
     return 0;
 }
@@ -987,47 +931,36 @@ by storing in a string first and the return value is "";
 
 =cut
 
-sub out_final
-{
+sub out_final {
     my ($fh, $out, $cache_list, $state) = @_;
     my ($len) = length($out || '');
     my ($base_loc) = $state ? 0 : $fh->tell();
     my ($loc, $t, $r, $s, $master_cache, $offs, $str, %vecs);
 
     $fh->print($out || '') unless $state;       # first output the current attempt
-    foreach $r (@$cache_list)
-    {
+    for $r (@$cache_list) {
         $offs = $r->[1];
-        foreach $t (@{$r->[0]{''}})
-        {
+        for $t (@{$r->[0]{''}}) {
             $str = "$t";
-            if (!defined $master_cache->{$str})
-            {
+            if (!defined $master_cache->{$str}) {
                 my ($vec) = $t->signature();
-                if ($vecs{$vec})
-                { $master_cache->{$str} = $master_cache->{$vecs{$vec}}; }
-                else
-                {
+                if ($vecs{$vec}) { $master_cache->{$str} = $master_cache->{$vecs{$vec}}; }
+                else {
                     $vecs{$vec} = $str;
                     $master_cache->{$str} = ($state ? length($out) : $fh->tell())
                                                                        - $base_loc;
-                    if ($state)
-                    { $out .= $t->out($fh, 1); }
-                    else
-                    { $t->out($fh, 0); }
+                    if ($state) { $out .= $t->out($fh, 1); }
+                    else { $t->out($fh, 0); }
                 }
             }
-            foreach (@{$r->[0]{$str}})
-            {
+            for (@{$r->[0]{$str}}) {
                 $s = pack($_->[1], $master_cache->{$str} - $offs);
                 substr($out, $_->[0], length($s)) = $s;
             }
         }
     }
-    if ($state)
-    { return $out; }
-    else
-    {
+    if ($state) { return $out; }
+    else {
         $loc = $fh->tell();
         $fh->seek($base_loc, 0);
         $fh->print($out || '');       # the corrected version
@@ -1044,24 +977,19 @@ for GSUB, so GPOS should adjust the values upon calling.
 
 =cut
 
-sub read_context
-{
+sub read_context {
     my ($self, $lookup, $fh, $type, $fmt, $cover, $count, $loc) = @_;
     my ($dat, $i, $s, $t, @subst, @srec, $mcount, $scount);
-    
-    if ($type == 5 && $fmt < 3)
-    {
-        if ($fmt == 2)
-        {
+
+    if ($type == 5 && $fmt < 3) {
+        if ($fmt == 2) {
             $fh->read($dat, 2);
             $lookup->{'CLASS'} = $self->read_cover($count, $loc, $lookup, $fh, 0);
             $count = TTF_Unpack('S', $dat);
         }
         $fh->read($dat, $count << 1);
-        foreach $s (TTF_Unpack('S*', $dat))
-        {
-            if ($s == 0)
-            {
+        for $s (TTF_Unpack('S*', $dat)) {
+            if ($s == 0) {
                 push (@{$lookup->{'RULES'}}, []);
                 next;
             }
@@ -1070,8 +998,7 @@ sub read_context
             $fh->read($dat, 2);
             $t = TTF_Unpack('S', $dat);
             $fh->read($dat, $t << 1);
-            foreach $t (TTF_Unpack('S*', $dat))
-            {
+            for $t (TTF_Unpack('S*', $dat)) {
                 $fh->seek($loc + $s + $t, 0);
                 @srec = ();
                 $fh->read($dat, 4);
@@ -1089,22 +1016,23 @@ sub read_context
         }
         $lookup->{'ACTION_TYPE'} = 'l';
         $lookup->{'MATCH_TYPE'} = ($fmt == 2 ? 'c' : 'g');
-    } elsif ($type == 5 && $fmt == 3)
-    {
+    }
+    elsif ($type == 5 && $fmt == 3) {
         $fh->read($dat, ($cover << 1) + ($count << 2));
         @subst = (); @srec = ();
-        for ($i = 0; $i < $cover; $i++)
-        { push (@subst, $self->read_cover(TTF_Unpack('S', substr($dat, $i << 1, 2)),
-                                $loc, $lookup, $fh, 1)); }
-        for ($i = 0; $i < $count; $i++)
-        { push (@srec, [TTF_Unpack('S2', substr($dat, ($count << 1) + ($i << 2), 4))]); }
+        for ($i = 0; $i < $cover; $i++) {
+        	push (@subst, $self->read_cover(TTF_Unpack('S', substr($dat, $i << 1, 2)),
+                                $loc, $lookup, $fh, 1));
+        }
+        for ($i = 0; $i < $count; $i++) {
+        	push (@srec, [TTF_Unpack('S2', substr($dat, ($count << 1) + ($i << 2), 4))]);
+        }
         $lookup->{'RULES'} = [[{'ACTION' => [@srec], 'MATCH' => [@subst]}]];
         $lookup->{'ACTION_TYPE'} = 'l';
         $lookup->{'MATCH_TYPE'} = 'o';
-    } elsif ($type == 6 && $fmt < 3)
-    {
-        if ($fmt == 2)
-        {
+    }
+    elsif ($type == 6 && $fmt < 3) {
+        if ($fmt == 2) {
             $fh->read($dat, 6);
             $lookup->{'PRE_CLASS'} = $self->read_cover($count, $loc, $lookup, $fh, 0) if $count;
             ($i, $mcount, $count) = TTF_Unpack('S3', $dat);     # messy: 2 classes & count
@@ -1112,10 +1040,8 @@ sub read_context
             $lookup->{'POST_CLASS'} = $self->read_cover($mcount, $loc, $lookup, $fh, 0) if $mcount;
         }
         $fh->read($dat, $count << 1);
-        foreach $s (TTF_Unpack('S*', $dat))
-        {
-            if ($s == 0)
-            {
+        for $s (TTF_Unpack('S*', $dat)) {
+            if ($s == 0) {
                 push (@{$lookup->{'RULES'}}, []);
                 next;
             }
@@ -1124,29 +1050,25 @@ sub read_context
             $fh->read($dat, 2);
             $t = TTF_Unpack('S', $dat);
             $fh->read($dat, $t << 1);
-            foreach $i (TTF_Unpack('S*', $dat))
-            {
+            for $i (TTF_Unpack('S*', $dat)) {
                 $fh->seek($loc + $s + $i, 0);
                 @srec = ();
                 $t = {};
                 $fh->read($dat, 2);
                 $mcount = TTF_Unpack('S', $dat);
-                if ($mcount > 0)
-                {
+                if ($mcount > 0) {
                     $fh->read($dat, $mcount << 1);
                     $t->{'PRE'} = [TTF_Unpack('S*', $dat)];
                 }
                 $fh->read($dat, 2);
                 $mcount = TTF_Unpack('S', $dat);
-                if ($mcount > 1)
-                {
+                if ($mcount > 1) {
                     $fh->read($dat, ($mcount - 1) << 1);
                     $t->{'MATCH'} = [TTF_Unpack('S*', $dat)];
                 }
                 $fh->read($dat, 2);
                 $mcount = TTF_Unpack('S', $dat);
-                if ($mcount > 0)
-                {
+                if ($mcount > 0) {
                     $fh->read($dat, $mcount << 1);
                     $t->{'POST'} = [TTF_Unpack('S*', $dat)];
                 }
@@ -1162,43 +1084,42 @@ sub read_context
         }
         $lookup->{'ACTION_TYPE'} = 'l';
         $lookup->{'MATCH_TYPE'} = ($fmt == 2 ? 'c' : 'g');
-    } elsif ($type == 6 && $fmt == 3)
-    {
+    }
+    elsif ($type == 6 && $fmt == 3) {
         $t = {};
-        unless ($cover == 0)
-        {
+        unless ($cover == 0) {
             @subst = ();
             $fh->read($dat, $cover << 1);
-            foreach $s (TTF_Unpack('S*', $dat))
+            for $s (TTF_Unpack('S*', $dat))
             { push(@subst, $self->read_cover($s, $loc, $lookup, $fh, 1)); }
             $t->{'PRE'} = [@subst];
         }
         $fh->read($dat, 2);
         $count = TTF_Unpack('S', $dat);
-        unless ($count == 0)
-        {
+        unless ($count == 0) {
             @subst = ();
             $fh->read($dat, $count << 1);
-            foreach $s (TTF_Unpack('S*', $dat))
+            for $s (TTF_Unpack('S*', $dat))
             { push(@subst, $self->read_cover($s, $loc, $lookup, $fh, 1)); }
             $t->{'MATCH'} = [@subst];
         }
         $fh->read($dat, 2);
         $count = TTF_Unpack('S', $dat);
-        unless ($count == 0)
-        {
+        unless ($count == 0) {
             @subst = ();
             $fh->read($dat, $count << 1);
-            foreach $s (TTF_Unpack('S*', $dat))
-            { push(@subst, $self->read_cover($s, $loc, $lookup, $fh, 1)); }
+            for $s (TTF_Unpack('S*', $dat)) {
+            	push(@subst, $self->read_cover($s, $loc, $lookup, $fh, 1));
+            }
             $t->{'POST'} = [@subst];
         }
         $fh->read($dat, 2);
         $count = TTF_Unpack('S', $dat);
         @subst = ();
         $fh->read($dat, $count << 2);
-        for ($i = 0; $i < $count; $i++)
-        { push (@subst, [TTF_Unpack('S2', substr($dat, $i << 2, 4))]); }
+        for ($i = 0; $i < $count; $i++) {
+        	push (@subst, [TTF_Unpack('S2', substr($dat, $i << 2, 4))]);
+        }
         $t->{'ACTION'} = [@subst];
         $lookup->{'RULES'} = [[$t]];
         $lookup->{'ACTION_TYPE'} = 'l';
@@ -1217,96 +1138,88 @@ in a GSUB table so calling from GPOS should adjust the value accordingly.
 
 =cut
 
-sub out_context
-{
+sub out_context {
     my ($self, $lookup, $fh, $type, $fmt, $ctables, $out, $num, $base) = @_;
     my ($offc, $offd, $i, $j, $r, $t, $numd);
 
     $out ||= '';
-    if (($type == 4 || $type == 5 || $type == 6) && ($fmt == 1 || $fmt == 2))
-    {
+    if (($type == 4 || $type == 5 || $type == 6) && ($fmt == 1 || $fmt == 2)) {
         my ($base_off);
-        
-        if ($fmt == 1)
-        {
-            $out = pack("nnn", $fmt, Font::TTF::Ttopen::ref_cache($lookup->{'COVERAGE'}, $ctables, 2 + $base),
+
+        if ($fmt == 1) {
+            $out = pack("nnn", $fmt, Font::OTF::Ttopen::ref_cache($lookup->{'COVERAGE'}, $ctables, 2 + $base),
                             $num);
             $base_off = 6;
-        } elsif ($type == 5)
-        {
-            $out = pack("nnnn", $fmt, Font::TTF::Ttopen::ref_cache($lookup->{'COVERAGE'}, $ctables, 2 + $base),
-                            Font::TTF::Ttopen::ref_cache($lookup->{'CLASS'}, $ctables, 4 + $base), $num);
+        }
+        elsif ($type == 5)  {
+            $out = pack("nnnn", $fmt, Font::OTF::Ttopen::ref_cache($lookup->{'COVERAGE'}, $ctables, 2 + $base),
+                            Font::OTF::Ttopen::ref_cache($lookup->{'CLASS'}, $ctables, 4 + $base), $num);
             $base_off = 8;
-        } elsif ($type == 6)
-        {
-            $out = pack("n6", $fmt, Font::TTF::Ttopen::ref_cache($lookup->{'COVERAGE'}, $ctables, 2 + $base),
-                                Font::TTF::Ttopen::ref_cache($lookup->{'PRE_CLASS'}, $ctables, 4 + $base),
-                                Font::TTF::Ttopen::ref_cache($lookup->{'CLASS'}, $ctables, 6 + $base),
-                                Font::TTF::Ttopen::ref_cache($lookup->{'POST_CLASS'}, $ctables, 8 + $base),
+        }
+        elsif ($type == 6) {
+            $out = pack("n6", $fmt, Font::OTF::Ttopen::ref_cache($lookup->{'COVERAGE'}, $ctables, 2 + $base),
+                                Font::OTF::Ttopen::ref_cache($lookup->{'PRE_CLASS'}, $ctables, 4 + $base),
+                                Font::OTF::Ttopen::ref_cache($lookup->{'CLASS'}, $ctables, 6 + $base),
+                                Font::OTF::Ttopen::ref_cache($lookup->{'POST_CLASS'}, $ctables, 8 + $base),
                                 $num);
             $base_off = 12;
         }
 
         $out .= pack('n*', (0) x $num);
         $offc = length($out);
-        for ($i = 0; $i < $num; $i++)
-        {
+        for ($i = 0; $i < $num; $i++) {
             $r = $lookup->{'RULES'}[$i];
             next unless exists $r->[0]{'ACTION'};
             $numd = $#{$r} + 1;
             substr($out, ($i << 1) + $base_off, 2) = pack('n', $offc);
             $out .= pack('n*', $numd, (0) x $numd);
             $offd = length($out) - $offc;
-            for ($j = 0; $j < $numd; $j++)
-            {
+            for ($j = 0; $j < $numd; $j++) {
                 substr($out, $offc + 2 + ($j << 1), 2) = pack('n', $offd);
-                if ($type == 4)
-                {
+                if ($type == 4) {
                     $out .= pack('n*', $r->[$j]{'ACTION'}[0], $#{$r->[$j]{'MATCH'}} + 2,
                                         @{$r->[$j]{'MATCH'}});
-                } elsif ($type == 5)
-                {
+                } elsif ($type == 5) {
                     $out .= pack('n*', $#{$r->[$j]{'MATCH'}} + 2,
                                         $#{$r->[$j]{'ACTION'}} + 1,
                                         @{$r->[$j]{'MATCH'}});
-                    foreach $t (@{$r->[$j]{'ACTION'}})
+                    for $t (@{$r->[$j]{'ACTION'}})
                     { $out .= pack('n2', @$t); }
-                } elsif ($type == 6)
-                {
+                } elsif ($type == 6) {
                     $out .= pack('n*', $#{$r->[$j]{'PRE'}} + 1, @{$r->[$j]{'PRE'}},
                                     $#{$r->[$j]{'MATCH'}} + 2, @{$r->[$j]{'MATCH'}},
                                     $#{$r->[$j]{'POST'}} + 1, @{$r->[$j]{'POST'}},
                                     $#{$r->[$j]{'ACTION'}} + 1);
-                    foreach $t (@{$r->[$j]{'ACTION'}})
+                    for $t (@{$r->[$j]{'ACTION'}})
                     { $out .= pack('n2', @$t); }
                 }
                 $offd = length($out) - $offc;
             }
             $offc = length($out);
         }
-    } elsif ($type == 5 && $fmt == 3)
-    {
+    }
+    elsif ($type == 5 && $fmt == 3) {
         $out .= pack('n3', $fmt, $#{$lookup->{'RULES'}[0][0]{'MATCH'}} + 1,
                                 $#{$lookup->{'RULES'}[0][0]{'ACTION'}} + 1);
-        foreach $t (@{$lookup->{'RULES'}[0][0]{'MATCH'}})
-        { $out .= pack('n', Font::TTF::Ttopen::ref_cache($t, $ctables, length($out) + $base)); }
-        foreach $t (@{$lookup->{'RULES'}[0][0]{'ACTION'}})
+        for $t (@{$lookup->{'RULES'}[0][0]{'MATCH'}})
+        { $out .= pack('n', Font::OTF::Ttopen::ref_cache($t, $ctables, length($out) + $base)); }
+        for $t (@{$lookup->{'RULES'}[0][0]{'ACTION'}})
         { $out .= pack('n2', @$t); }
-    } elsif ($type == 6 && $fmt == 3)
-    {
+    }
+    elsif ($type == 6 && $fmt == 3) {
         $r = $lookup->{'RULES'}[0][0];
         no strict 'refs';   # temp fix - more code needed (probably "if" statements in the event 'PRE' or 'POST' are empty)
         $out .= pack('n2', $fmt, defined $r->{'PRE'} ? scalar @{$r->{'PRE'}} : 0);
-        foreach $t (@{$r->{'PRE'}})
-        { $out .= pack('n', Font::TTF::Ttopen::ref_cache($t, $ctables, length($out) + $base)); }
+        for $t (@{$r->{'PRE'}})
+        { $out .= pack('n', Font::OTF::Ttopen::ref_cache($t, $ctables, length($out) + $base)); }
         $out .= pack('n', defined $r->{'MATCH'} ? scalar @{$r->{'MATCH'}} : 0);
-        foreach $t (@{$r->{'MATCH'}})
-        { $out .= pack('n', Font::TTF::Ttopen::ref_cache($t, $ctables, length($out) + $base)); }
+        for $t (@{$r->{'MATCH'}})
+        { $out .= pack('n', Font::OTF::Ttopen::ref_cache($t, $ctables, length($out) + $base)); }
         $out .= pack('n', defined $r->{'POST'} ? scalar @{$r->{'POST'}} : 0);
-        foreach $t (@{$r->{'POST'}})
-        { $out .= pack('n', Font::TTF::Ttopen::ref_cache($t, $ctables, length($out) + $base)); }
+        for $t (@{$r->{'POST'}})
+        { $out .= pack('n', Font::OTF::Ttopen::ref_cache($t, $ctables, length($out) + $base)); }
         $out .= pack('n', defined $r->{'ACTION'} ? scalar @{$r->{'ACTION'}} : 0);
-        foreach $t (@{$r->{'ACTION'}})
+        for $t (@{$r->{'ACTION'}})
         { $out .= pack('n2', @$t); }
     }
     $out;
@@ -1329,14 +1242,14 @@ repeated if necessary. Within lookup sharing is possible.
 
 =head1 AUTHOR
 
-Martin Hosken L<http://scripts.sil.org/FontUtils>. 
+Martin Hosken L<http://scripts.sil.org/FontUtils>.
 
 
 =head1 LICENSING
 
-Copyright (c) 1998-2016, SIL International (http://www.sil.org) 
+Copyright (c) 1998-2016, SIL International (http://www.sil.org)
 
-This module is released under the terms of the Artistic License 2.0. 
+This module is released under the terms of the Artistic License 2.0.
 For details, see the full text of the license in the file LICENSE.
 
 

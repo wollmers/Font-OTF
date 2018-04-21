@@ -1,14 +1,14 @@
-package Font::TTF::Bsln;
+package Font::OTF::Bsln;
 
 =head1 NAME
 
-Font::TTF::Bsln - Baseline table in a font
+Font::OTF::Bsln - Baseline table in a font
 
 =head1 DESCRIPTION
 
 =head1 INSTANCE VARIABLES
 
-=over 
+=over
 
 =item version
 
@@ -26,7 +26,7 @@ Font::TTF::Bsln - Baseline table in a font
 
 =item lookup
 
-=back 
+=back
 
 =head1 METHODS
 
@@ -35,11 +35,11 @@ Font::TTF::Bsln - Baseline table in a font
 use strict;
 use vars qw(@ISA);
 
-use Font::TTF::AATutils;
-use Font::TTF::Utils;
-require Font::TTF::Table;
+use Font::OTF::AATutils;
+use Font::OTF::Utils;
+require Font::OTF::Table;
 
-@ISA = qw(Font::TTF::Table);
+@ISA = qw(Font::OTF::Table);
 
 =head2 $t->read
 
@@ -47,11 +47,10 @@ Reads the table into memory
 
 =cut
 
-sub read
-{
+sub read {
     my ($self) = @_;
     my ($dat, $fh);
-    
+
     $self->SUPER::read or return $self;
 
     $fh = $self->{' INFILE'};
@@ -71,7 +70,7 @@ sub read
     else {
         die "unknown table format";
     }
-    
+
     if ($format == 1 or $format == 3) {
         my $len = $self->{' LENGTH'} - ($fh->tell() - $self->{' OFFSET'});
         my ($lookupFormat, $lookup) = AAT_read_lookup($fh, 2, $len, $defaultBaseline);
@@ -92,10 +91,9 @@ Writes the table to a file either from memory or by copying
 
 =cut
 
-sub out
-{
+sub out {
     my ($self, $fh) = @_;
-    
+
     return $self->SUPER::out($fh) unless $self->{' read'};
 
     my $format = $self->{'format'};
@@ -111,41 +109,39 @@ Prints a human-readable representation of the table
 
 =cut
 
-sub print
-{
+sub print {
     my ($self, $fh) = @_;
 
     $self->read;
-        
+
     $fh = 'STDOUT' unless defined $fh;
-    
+
     my $format = $self->{'format'};
     $fh->printf("version %f\nformat %d\ndefaultBaseline %d\n", $self->{'version'}, $format, $self->{'defaultBaseline'});
     if ($format == 0 or $format == 1) {
         $fh->printf("\tdeltas:\n");
         my $deltas = $self->{'deltas'};
-        foreach (0 .. 31) {
+        for (0 .. 31) {
             $fh->printf("\t\t%d: %d%s\n", $_, $deltas->[$_], defined baselineName_($_) ? "\t# " . baselineName_($_) : "");
         }
     }
     if ($format == 2 or $format == 3) {
         $fh->printf("\tstdGlyph = %d\n", $self->{'stdGlyph'});
         my $ctlPoints = $self->{'ctlPoints'};
-        foreach (0 .. 31) {
+        for (0 .. 31) {
             $fh->printf("\t\t%d: %d%s\n", $_, $ctlPoints->[$_], defined baselineName_($_) ? "\t# " . baselineName_($_) : "");
         }
     }
     if ($format == 1 or $format == 3) {
         $fh->printf("lookupFormat %d\n", $self->{'lookupFormat'});
         my $lookup = $self->{'lookup'};
-        foreach (sort { $a <=> $b } keys %$lookup) {
+        for (sort { $a <=> $b } keys %$lookup) {
             $fh->printf("\tglyph %d: %d%s\n", $_, $lookup->{$_}, defined baselineName_($_) ? "\t# " . baselineName_($_) : "");
         }
     }
 }
 
-sub baselineName_
-{
+sub baselineName_ {
     my ($b) = @_;
     my @baselines = ( 'Roman', 'Ideographic centered', 'Ideographic low', 'Hanging', 'Math' );
     $baselines[$b];
@@ -160,14 +156,14 @@ None known
 
 =head1 AUTHOR
 
-Jonathan Kew L<http://scripts.sil.org/FontUtils>. 
+Jonathan Kew L<http://scripts.sil.org/FontUtils>.
 
 
 =head1 LICENSING
 
-Copyright (c) 1998-2016, SIL International (http://www.sil.org) 
+Copyright (c) 1998-2016, SIL International (http://www.sil.org)
 
-This module is released under the terms of the Artistic License 2.0. 
+This module is released under the terms of the Artistic License 2.0.
 For details, see the full text of the license in the file LICENSE.
 
 

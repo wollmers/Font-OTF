@@ -1,15 +1,15 @@
-package Font::TTF::XMLparse;
+package Font::OTF::XMLparse;
 
 =head1 NAME
 
-Font::TTF::XMLparse - provides support for XML parsing. Requires Expat module XML::Parser::Expat
+Font::OTF::XMLparse - provides support for XML parsing. Requires Expat module XML::Parser::Expat
 
 =head1 SYNOPSIS
 
-    use Font::TTF::Font;
-    use Font::TTF::XMLparse;
+    use Font::OTF::Font;
+    use Font::OTF::XMLparse;
 
-    $f = Font::TTF::Font->new;
+    $f = Font::OTF::Font->new;
     read_xml($f, $ARGV[0]);
     $f->out($ARGV[1]);
 
@@ -113,8 +113,7 @@ use vars qw(@ISA @EXPORT);
 @ISA = qw(Exporter);
 @EXPORT = qw(read_xml);
 
-sub read_xml
-{
+sub read_xml {
     my ($font, $fname) = @_;
 
     my ($xml) = XML::Parser::Expat->new;
@@ -143,18 +142,16 @@ sub read_xml
             $current = $context->{'text'} unless (defined $current);
             $context->{'text'} = '';
 
-            if (defined $res)
-            {
+            if (defined $res) {
                 return if ($res eq $context);
                 $current = $res;
             }
             return unless $#{$context->{'tree'}} >= 0;
-            if ($tag eq 'elem')
-            {
+            if ($tag eq 'elem') {
                 $context->{'tree'}[-1] = [] unless defined $context->{'tree'}[-1];
                 push (@{$context->{'tree'}[-1]}, $current);
-            } else
-            {
+            }
+            else {
                 $context->{'tree'}[-1] = {} unless defined $context->{'tree'}[-1];
                 $context->{'tree'}[-1]{$tag} = $current;
             }
@@ -167,24 +164,22 @@ sub read_xml
     $xml->{' mycontext'} = $context;
 
     $context->{'receiver'} = $font;
-    if (ref $fname)
-    { return $xml->parse($fname); }
-    else
-    { return $xml->parsefile($fname); }
+    if (ref $fname) { return $xml->parse($fname); }
+    else { return $xml->parsefile($fname); }
 }
 
 1;
 
 =head1 AUTHOR
 
-Martin Hosken L<http://scripts.sil.org/FontUtils>. 
+Martin Hosken L<http://scripts.sil.org/FontUtils>.
 
 
 =head1 LICENSING
 
-Copyright (c) 1998-2016, SIL International (http://www.sil.org) 
+Copyright (c) 1998-2016, SIL International (http://www.sil.org)
 
-This module is released under the terms of the Artistic License 2.0. 
+This module is released under the terms of the Artistic License 2.0.
 For details, see the full text of the license in the file LICENSE.
 
 

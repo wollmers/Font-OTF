@@ -1,8 +1,8 @@
-package Font::TTF::Utils;
+package Font::OTF::Utils;
 
 =head1 NAME
 
-Font::TTF::Utils - Utility functions to save fingers
+Font::OTF::Utils - Utility functions to save fingers
 
 =head1 DESCRIPTION
 
@@ -31,36 +31,29 @@ in the fields associative array for the class
 
 =cut
 
-sub TTF_Init_Fields
-{
+sub TTF_Init_Fields {
     my ($str, $pos, $inval) = @_;
     my ($key, $val, $res, $len, $rel);
 
     $str =~ s/\r?\n$//o;
-    if ($inval)
-    { ($key, $val) = ($str, $inval); }
-    else
-    { ($key, $val) = split(',\s*', $str); }
+    if ($inval) { ($key, $val) = ($str, $inval); }
+    else { ($key, $val) = split(',\s*', $str); }
     return (undef, undef, 0) unless (defined $key && $key ne "");
-    if ($val =~ m/^(\+?)(\d*)(\D+)(\d*)/oi)
-    {
+    if ($val =~ m/^(\+?)(\d*)(\D+)(\d*)/oi) {
         $rel = $1;
-        if ($rel eq "+")
-        { $pos += $2; }
-        elsif ($2 ne "")
-        { $pos = $2; }
+        if ($rel eq "+") { $pos += $2; }
+        elsif ($2 ne "") { $pos = $2; }
         $val = $3;
         $len = $4;
     }
     $len = "" unless defined $len;
     $pos = 0 if !defined $pos || $pos eq "";
     $res = "$pos:$val:$len";
-    if ($val eq "f" || $val eq 'v' || $val =~ m/^[l]/oi)
-    { $pos += 4 * ($len ne "" ? $len : 1); }
-    elsif ($val eq "F" || $val =~ m/^[s]/oi)
-    { $pos += 2 * ($len ne "" ? $len : 1); }
-    else
-    { $pos += 1 * ($len ne "" ? $len : 1); }
+    if ($val eq "f" || $val eq 'v' || $val =~ m/^[l]/oi) {
+    	$pos += 4 * ($len ne "" ? $len : 1);
+    }
+    elsif ($val eq "F" || $val =~ m/^[s]/oi) { $pos += 2 * ($len ne "" ? $len : 1); }
+    else { $pos += 1 * ($len ne "" ? $len : 1); }
 
     ($key, $res, $pos);
 }
@@ -75,19 +68,17 @@ through C<TTF_Init_Fields>
 
 =cut
 
-sub TTF_Read_Fields
-{
+sub TTF_Read_Fields {
     my ($self, $dat, $fields) = @_;
     my ($pos, $type, $res, $f, $arrlen, $arr, $frac);
 
-    foreach $f (keys %{$fields})
-    {
+    for $f (keys %{$fields}) {
         ($pos, $type, $arrlen) = split(':', $fields->{$f});
         $pos = 0 if $pos eq "";
-        if ($arrlen ne "")
-        { $self->{$f} = [TTF_Unpack("$type$arrlen", substr($dat, $pos))]; }
-        else
-        { $self->{$f} = TTF_Unpack("$type", substr($dat, $pos)); }
+        if ($arrlen ne "") {
+        	$self->{$f} = [TTF_Unpack("$type$arrlen", substr($dat, $pos))];
+        }
+        else { $self->{$f} = TTF_Unpack("$type", substr($dat, $pos)); }
     }
     $self;
 }
@@ -115,35 +106,29 @@ Returns array of scalar (first element) depending on context
 
 =cut
 
-sub TTF_Unpack
-{
+sub TTF_Unpack {
     my ($fmt, $dat) = @_;
     my ($res, $frac, $i, $arrlen, $type, @res);
 
-    while ($fmt =~ s/^([cflsv])(\d+|\*)?//oi)
-    {
+    while ($fmt =~ s/^([cflsv])(\d+|\*)?//oi) {
         $type = $1;
         $arrlen = $2;
         $arrlen = 1 if !defined $arrlen || $arrlen eq "";
         $arrlen = -1 if $arrlen eq "*";
 
-        for ($i = 0; ($arrlen == -1 && $dat ne "") || $i < $arrlen; $i++)
-        {
-            if ($type eq "f")
-            {
+        for ($i = 0; ($arrlen == -1 && $dat ne "") || $i < $arrlen; $i++) {
+            if ($type eq "f") {
                 ($res, $frac) = unpack("nn", $dat);
                 substr($dat, 0, 4) = "";
                 $res -= 65536 if $res > 32767;
                 $res += $frac / 65536.;
             }
-            elsif ($type eq "v")
-            {
+            elsif ($type eq "v") {
                 ($res, $frac) = unpack("nn", $dat);
                 substr($dat, 0, 4) = "";
                 $res = sprintf("%d.%04X", $res, $frac);
             }
-            elsif ($type eq "F")
-            {
+            elsif ($type eq "F") {
                 $res = unpack("n", $dat);
                 substr($dat, 0, 2) = "";
 #                $res -= 65536 if $res >= 32768;
@@ -153,25 +138,21 @@ sub TTF_Unpack
 #                $frac -= 16384 if $frac > 8191;
                 $res += $frac / 16384.;
             }
-            elsif ($type =~ m/^[l]/oi)
-            {
+            elsif ($type =~ m/^[l]/oi) {
                 $res = unpack("N", $dat);
                 substr($dat, 0, 4) = "";
                 $res -= (1 << 32) if ($type eq "l" && $res >= 1 << 31);
             }
-            elsif ($type =~ m/^[s]/oi)
-            {
+            elsif ($type =~ m/^[s]/oi) {
                 $res = unpack("n", $dat);
                 substr($dat, 0, 2) = "";
                 $res -= 65536 if ($type eq "s" && $res >= 32768);
             }
-            elsif ($type eq "c")
-            {
+            elsif ($type eq "c") {
                 $res = unpack("c", $dat);
                 substr($dat, 0, 1) = "";
             }
-            else
-            {
+            else {
                 $res = unpack("C", $dat);
                 substr($dat, 0, 1) = "";
             }
@@ -189,14 +170,12 @@ the object to the filehandle in TTF binary form.
 
 =cut
 
-sub TTF_Out_Fields
-{
+sub TTF_Out_Fields {
     my ($obj, $fields, $len) = @_;
     my ($dat) = "\000" x $len;
     my ($f, $pos, $type, $res, $arr, $arrlen, $frac);
-    
-    foreach $f (keys %{$fields})
-    {
+
+    for $f (keys %{$fields}) {
         ($pos, $type, $arrlen) = split(':', $fields->{$f});
         if ($arrlen ne "")
         { $res = TTF_Pack("$type$arrlen", @{$obj->{$f}}); }
@@ -215,59 +194,47 @@ for how to work the $fmt string.
 
 =cut
 
-sub TTF_Pack
-{
+sub TTF_Pack {
     my ($fmt, @obj) = @_;
     my ($type, $i, $arrlen, $dat, $res, $frac);
 
     $dat = '';
-    while ($fmt =~ s/^([flscv])(\d+|\*)?//oi)
-    {
+    while ($fmt =~ s/^([flscv])(\d+|\*)?//oi) {
         $type = $1;
         $arrlen = $2 || "";
         $arrlen = $#obj + 1 if $arrlen eq "*";
         $arrlen = 1 if $arrlen eq "";
-    
-        for ($i = 0; $i < $arrlen; $i++)
-        {
+
+        for ($i = 0; $i < $arrlen; $i++) {
             $res = shift(@obj) || 0;
-            if ($type eq "f")
-            {
+            if ($type eq "f") {
                 $frac = int(($res - int($res)) * 65536);
                 $res = (int($res) << 16) + $frac;
                 $dat .= pack("N", $res);
             }
-            elsif ($type eq "v")
-            {
-                if ($res =~ s/\.([0-9a-f]+)$//oi)
-                {
+            elsif ($type eq "v") {
+                if ($res =~ s/\.([0-9a-f]+)$//oi) {
                     $frac = $1;
                     $frac .= "0" x (4 - length($frac));
                 }
-                else
-                { $frac = 0; }
+                else { $frac = 0; }
                 $dat .= pack('nn', $res, hex($frac));
             }
-            elsif ($type eq "F")
-            {
+            elsif ($type eq "F") {
                 $frac = int(($res - int($res)) * 16384);
                 $res = (int($res) << 14) + $frac;
                 $dat .= pack("n", $res);
             }
-            elsif ($type =~ m/^[l]/oi)
-            {
+            elsif ($type =~ m/^[l]/oi) {
                 $res += 1 << 32 if ($type eq 'L' && $res < 0);
                 $dat .= pack("N", $res);
             }
-            elsif ($type =~ m/^[s]/oi)
-            {
+            elsif ($type =~ m/^[s]/oi) {
                 $res += 1 << 16 if ($type eq 'S' && $res < 0);
                 $dat .= pack("n", $res);
             }
-            elsif ($type eq "c")
-            { $dat .= pack("c", $res); }
-            else
-            { $dat .= pack("C", $res); }
+            elsif ($type eq "c") { $dat .= pack("c", $res); }
+            else { $dat .= pack("C", $res); }
         }
     }
     $dat;
@@ -280,14 +247,12 @@ Calculates binary search information from a number of elements
 
 =cut
 
-sub TTF_bininfo
-{
+sub TTF_bininfo {
     my ($num, $block) = @_;
     my ($range, $select, $shift);
 
     $range = 1;
-    for ($select = 0; $range <= $num; $select++)
-    { $range *= 2; }
+    for ($select = 0; $range <= $num; $select++) { $range *= 2; }
     $select--; $range /= 2;
     $range *= $block;
 
@@ -303,30 +268,29 @@ including surrogate handling
 
 =cut
 
-sub TTF_word_utf8
-{
+sub TTF_word_utf8 {
     my ($str) = @_;
     my ($res, $i);
     my (@dat) = unpack("n*", $str);
 
     return pack("U*", @dat) if ($] >= 5.006);
-    for ($i = 0; $i <= $#dat; $i++)
-    {
+    for ($i = 0; $i <= $#dat; $i++) {
         my ($dat) = $dat[$i];
-        if ($dat < 0x80)        # Thanks to Gisle Aas for some of his old code
-        { $res .= chr($dat); }
-        elsif ($dat < 0x800)
-        { $res .= chr(0xC0 | ($dat >> 6)) . chr(0x80 | ($dat & 0x3F)); }
-        elsif ($dat >= 0xD800 && $dat < 0xDC00)
-        {
+        if ($dat < 0x80) {       # Thanks to Gisle Aas for some of his old code
+          $res .= chr($dat);
+        }
+        elsif ($dat < 0x800) {
+        	$res .= chr(0xC0 | ($dat >> 6)) . chr(0x80 | ($dat & 0x3F));
+        }
+        elsif ($dat >= 0xD800 && $dat < 0xDC00) {
             my ($dat1) = $dat[++$i];
             my ($top) = (($dat & 0x3C0) >> 6) + 1;
             $res .= chr(0xF0 | ($top >> 2))
                   . chr(0x80 | (($top & 1) << 4) | (($dat & 0x3C) >> 2))
                   . chr(0x80 | (($dat & 0x3) << 4) | (($dat1 & 0x3C0) >> 6))
                   . chr(0x80 | ($dat1 & 0x3F));
-        } else
-        { $res .= chr(0xE0 | ($dat >> 12)) . chr(0x80 | (($dat >> 6) & 0x3F))
+        }
+        else { $res .= chr(0xE0 | ($dat >> 12)) . chr(0x80 | (($dat >> 6) & 0x3F))
                 . chr(0x80 | ($dat & 0x3F)); }
     }
     $res;
@@ -340,33 +304,33 @@ surrogate handling to Unicode.
 
 =cut
 
-sub TTF_utf8_word
-{
+sub TTF_utf8_word {
     my ($str) = @_;
     my ($res);
 
     return pack("n*", unpack("U*", $str)) if ($^V ge v5.6.0);
     $str = "$str";              # copy $str
-    while (length($str))        # Thanks to Gisle Aas for some of his old code
-    {
+    while (length($str)) {      # Thanks to Gisle Aas for some of his old code
+
         $str =~ s/^[\x80-\xBF]+//o;
-        if ($str =~ s/^([\x00-\x7F]+)//o)
-        { $res .= pack("n*", unpack("C*", $1)); }
-        elsif ($str =~ s/^([\xC0-\xDF])([\x80-\xBF])//o)
-        { $res .= pack("n", ((ord($1) & 0x1F) << 6) | (ord($2) & 0x3F)); }
-        elsif ($str =~ s/^([\0xE0-\xEF])([\x80-\xBF])([\x80-\xBF])//o)
-        { $res .= pack("n", ((ord($1) & 0x0F) << 12)
+        if ($str =~ s/^([\x00-\x7F]+)//o) {
+         $res .= pack("n*", unpack("C*", $1));
+        }
+        elsif ($str =~ s/^([\xC0-\xDF])([\x80-\xBF])//o) {
+        	$res .= pack("n", ((ord($1) & 0x1F) << 6) | (ord($2) & 0x3F));
+        }
+        elsif ($str =~ s/^([\0xE0-\xEF])([\x80-\xBF])([\x80-\xBF])//o) {
+        	$res .= pack("n", ((ord($1) & 0x0F) << 12)
                           | ((ord($2) & 0x3F) << 6)
-                          | (ord($3) & 0x3F)); }
-        elsif ($str =~ s/^([\xF0-\xF7])([\x80-\xBF])([\x80-\xBF])([\x80-\xBF])//o)
-        {
+                          | (ord($3) & 0x3F));
+        }
+        elsif ($str =~ s/^([\xF0-\xF7])([\x80-\xBF])([\x80-\xBF])([\x80-\xBF])//o) {
             my ($b1, $b2, $b3, $b4) = (ord($1), ord($2), ord($3), ord($4));
             $res .= pack("n", ((($b1 & 0x07) << 8) | (($b2 & 0x3F) << 2)
                             | (($b3 & 0x30) >> 4)) + 0xD600);  # account for offset
             $res .= pack("n", ((($b3 & 0x0F) << 6) | ($b4 & 0x3F)) + 0xDC00);
         }
-        elsif ($str =~ s/^[\xF8-\xFF][\x80-\xBF]*//o)
-        { }
+        elsif ($str =~ s/^[\xF8-\xFF][\x80-\xBF]*//o) { }
     }
     $res;
 }
@@ -378,15 +342,13 @@ Dumps out the given data as a sequence of <data> blocks each 16 bytes wide
 
 =cut
 
-sub XML_hexdump
-{
+sub XML_hexdump {
     my ($context, $depth, $dat) = @_;
     my ($fh) = $context->{'fh'};
     my ($i, $len, $out);
 
     $len = length($dat);
-    for ($i = 0; $i < $len; $i += 16)
-    {
+    for ($i = 0; $i < $len; $i += 16) {
         $out = join(' ', map {sprintf("%02X", ord($_))} (split('', substr($dat, $i, 16))));
         $fh->printf("%s<data addr='%04X'>%s</data>\n", $depth, $i, $out);
     }
@@ -450,22 +412,18 @@ Converts a binary string of hinting code into a textual representation
     my ($i);
     my (%hints) = map { $_->[0] => $i++ if (defined $_->[0]); } @hints;
 
-    sub XML_binhint
-    {
+    sub XML_binhint {
         my ($dat) = @_;
         my ($len) = length($dat);
         my ($res, $i, $text, $size, $num);
 
-        for ($i = 0; $i < $len; $i++)
-        {
+        for ($i = 0; $i < $len; $i++) {
             ($text, $num, $size) = @{$hints[ord(substr($dat, $i, 1))]};
             $num = 0 unless (defined $num);
             $text = sprintf("UNK[%02X]", ord(substr($dat, $i, 1))) unless defined $text;
             $res .= $text;
-            if ($num != 0)
-            {
-                if ($num < 0)
-                {
+            if ($num != 0) {
+                if ($num < 0) {
                     $i++;
                     my ($nnum) = unpack($num == -1 ? 'C' : 'n', substr($dat, $i, -$num));
                     $i += -$num - 1;
@@ -479,24 +437,20 @@ Converts a binary string of hinting code into a textual representation
         $res;
     }
 
-    sub XML_hintbin
-    {
+    sub XML_hintbin {
         my ($dat) = @_;
         my ($l, $res, @words, $num);
 
-        foreach $l (split(/\s*\n\s*/, $dat))
-        {
+        for $l (split(/\s*\n\s*/, $dat)) {
             @words = split(/\s*/, $l);
             next unless (defined $hints{$words[0]});
             $num = $hints{$words[0]};
             $res .= pack('C', $num);
-            if ($hints[$num][1] < 0)
-            {
+            if ($hints[$num][1] < 0) {
                 $res .= pack($hints[$num][1] == -1 ? 'C' : 'n', $#words);
                 $res .= pack($hints[$num][2] == 1 ? 'C*' : 'n*', @words[1 .. $#words]);
             }
-            elsif ($hints[$num][1] > 0)
-            {
+            elsif ($hints[$num][1] > 0) {
                 $res .= pack($hints[$num][2] == 1 ? 'C*' : 'n*', @words[1 .. $hints[$num][1]]);
             }
         }
@@ -559,11 +513,10 @@ Radius of each dot.
 
 =cut
 
-sub make_circle
-{
+sub make_circle {
     my ($font, $cmap, $dia, $sb, %opts) = @_;
     my ($upem) = $font->{'head'}{'unitsPerEm'};
-    my ($glyph) = Font::TTF::Glyph->new('PARENT' => $font, 'read' => 2, 'isDirty' => 1);
+    my ($glyph) = Font::OTF::Glyph->new('PARENT' => $font, 'read' => 2, 'isDirty' => 1);
     my ($PI) = 3.1415926535;
     my ($R, $r, $xorg, $yorg);
     my ($i, $j, $numg, $maxp);
@@ -581,12 +534,10 @@ sub make_circle
     $xorg += $sb;
     $font->{'post'}->read;
     $font->{'glyf'}->read;
-    for ($i = 0; $i < $numc; $i++)
-    {
+    for ($i = 0; $i < $numc; $i++) {
         my ($pxorg, $pyorg) = ($xorg + $R * cos(2 * $PI * $i / $numc),
                                     $yorg + $R * sin(2 * $PI * $i / $numc));
-        for ($j = 0; $j < $nump; $j++)
-        {
+        for ($j = 0; $j < $nump; $j++) {
             push (@{$glyph->{'x'}}, int ($pxorg + ($j & 1 ? 1/cos(2*$PI/$nump) : 1) * $r * cos(2 * $PI * $j / $nump)));
             push (@{$glyph->{'y'}}, int ($pyorg + ($j & 1 ? 1/cos(2*$PI/$nump) : 1) * $r * sin(2 * $PI * $j / $nump)));
             push (@{$glyph->{'flags'}}, $j & 1 ? 0 : 1);
@@ -607,7 +558,7 @@ sub make_circle
     delete $font->{'hdmx'};
     delete $font->{'VDMX'};
     delete $font->{'LTSH'};
-    
+
     $font->tables_do(sub {$_[0]->dirty;});
     $font->update;
     return ($numg - 1);
@@ -622,14 +573,14 @@ No known bugs
 
 =head1 AUTHOR
 
-Martin Hosken L<http://scripts.sil.org/FontUtils>. 
+Martin Hosken L<http://scripts.sil.org/FontUtils>.
 
 
 =head1 LICENSING
 
-Copyright (c) 1998-2016, SIL International (http://www.sil.org) 
+Copyright (c) 1998-2016, SIL International (http://www.sil.org)
 
-This module is released under the terms of the Artistic License 2.0. 
+This module is released under the terms of the Artistic License 2.0.
 For details, see the full text of the license in the file LICENSE.
 
 

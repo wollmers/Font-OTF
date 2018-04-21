@@ -1,8 +1,8 @@
-package Font::TTF::OS_2;
+package Font::OTF::OS_2;
 
 =head1 NAME
 
-Font::TTF::OS_2 - the OS/2 table in a TTF font
+Font::OTF::OS_2 - the OS/2 table in a TTF font
 
 =head1 DESCRIPTION
 
@@ -69,9 +69,9 @@ Panose variable has been broken down into its elements.
 
 use strict;
 use vars qw(@ISA @fields @lens @field_info @weights @ranges @codepages);
-use Font::TTF::Table;
+use Font::OTF::Table;
 
-@ISA = qw(Font::TTF::Table);
+@ISA = qw(Font::OTF::Table);
 @field_info = (
     'xAvgCharWidth' => 's',
     'usWeightClass' => 'S',
@@ -126,25 +126,21 @@ use Font::TTF::Table;
 
 @weights = qw(64 14 27 35 100 20 14 42 63 3 6 35 20 56 56 17 4 49 56 71 31 10 18 3 18 2 166);
 
-use Font::TTF::Utils;
+use Font::OTF::Utils;
 
-sub init
-{
+sub init {
     my ($k, $v, $c, $n, $i, $t, $j);
 
     $n = 0;
     @lens = (76, 84, 94, 94, 94);
-    for ($j = 0; $j < $#field_info; $j += 2)
-    {
-        if ($field_info[$j] eq '')
-        {
+    for ($j = 0; $j < $#field_info; $j += 2) {
+        if ($field_info[$j] eq '') {
             $n++;
             next;
         }
         ($k, $v, $c) = TTF_Init_Fields($field_info[$j], $c, $field_info[$j+1]);
         next unless defined $k && $k ne "";
-        for ($i = $n; $i < 5; $i++)
-        { $fields[$i]{$k} = $v; }
+        for ($i = $n; $i < 5; $i++) { $fields[$i]{$k} = $v; }
     }
 }
 
@@ -155,8 +151,7 @@ Reads in the various values from disk (see details of OS/2 table)
 
 =cut
 
-sub read
-{
+sub read {
     my ($self) = @_;
     my ($dat, $ver);
 
@@ -166,8 +161,7 @@ sub read
     $self->{' INFILE'}->read($dat, 2);
     $ver = unpack("n", $dat);
     $self->{'Version'} = $ver;
-    if ($ver < 5)
-    {
+    if ($ver < 5) {
         $self->{' INFILE'}->read($dat, $lens[$ver]);
         TTF_Read_Fields($self, $dat, $fields[$ver]);
     }
@@ -181,8 +175,7 @@ Writes the table to a file either from memory or by copying.
 
 =cut
 
-sub out
-{
+sub out {
     my ($self, $fh) = @_;
     my ($ver);
 
@@ -201,18 +194,18 @@ Tidies up the hex values to output them in hex
 
 =cut
 
-sub XML_element
-{
+sub XML_element {
     my ($self) = shift;
     my ($context, $depth, $key, $value) = @_;
     my ($fh) = $context->{'fh'};
 
-    if ($key =~ m/^ul(?:Unicode|CodePage)Range\d$/o)
-    { $fh->printf("%s<%s>%08X</%s>\n", $depth, $key, $value, $key); }
-    elsif ($key eq 'achVendID')
-    { $fh->printf("%s<%s name='%s'/>\n", $depth, $key, pack('N', $value)); }
-    else
-    { return $self->SUPER::XML_element(@_); }
+    if ($key =~ m/^ul(?:Unicode|CodePage)Range\d$/o) {
+    	$fh->printf("%s<%s>%08X</%s>\n", $depth, $key, $value, $key);
+    }
+    elsif ($key eq 'achVendID') {
+    	$fh->printf("%s<%s name='%s'/>\n", $depth, $key, pack('N', $value));
+    }
+    else { return $self->SUPER::XML_element(@_); }
     $self;
 }
 
@@ -223,17 +216,13 @@ Now handle them on the way back in
 
 =cut
 
-sub XML_end
-{
+sub XML_end {
     my ($self) = shift;
     my ($context, $tag, %attrs) = @_;
 
-    if ($tag =~ m/^ul(?:Unicode|CodePage)Range\d$/o)
-    { return hex($context->{'text'}); }
-    elsif ($tag eq 'achVendID')
-    { return unpack('N', $attrs{'name'}); }
-    else
-    { return $self->SUPER::XML_end(@_); }
+    if ($tag =~ m/^ul(?:Unicode|CodePage)Range\d$/o) { return hex($context->{'text'}); }
+    elsif ($tag eq 'achVendID') { return unpack('N', $attrs{'name'}); }
+    else { return $self->SUPER::XML_end(@_); }
 }
 
 =head2 $t->minsize()
@@ -243,10 +232,7 @@ must be bad and should be deleted or whatever.
 
 =cut
 
-sub minsize
-{
-    return 78;
-}
+sub minsize { return 78; }
 
 =head2 $t->update
 
@@ -262,8 +248,7 @@ be the negative of Descender.
 
 =cut
 
-sub update
-{
+sub update {
     my ($self) = @_;
     my ($map, @keys, $table, $i, $avg, $hmtx);
 
@@ -279,47 +264,40 @@ sub update
     $self->{'usLastCharIndex'} = $keys[-1];
 
     $table = $self->{' PARENT'}{'hhea'}->read;
-    
+
     # try any way we can to get some real numbers passed around!
-    if (($self->{'fsSelection'} & 128) != 0)
-    {
+    if (($self->{'fsSelection'} & 128) != 0) {
         # assume the user knows what they are doing and has sensible values already
     }
-    elsif ($table->{'Ascender'} != 0 || $table->{'Descender'} != 0)
-    {
+    elsif ($table->{'Ascender'} != 0 || $table->{'Descender'} != 0) {
         $self->{'sTypoAscender'} = $table->{'Ascender'};
         $self->{'sTypoDescender'} = $table->{'Descender'};
         $self->{'sTypoLineGap'} = $table->{'LineGap'};
         $self->{'usWinAscent'} = $self->{'sTypoAscender'} + $self->{'sTypoLineGap'};
         $self->{'usWinDescent'} = -$self->{'sTypoDescender'};
     }
-    elsif ($self->{'sTypoAscender'} != 0 || $self->{'sTypoDescender'} != 0)
-    {
+    elsif ($self->{'sTypoAscender'} != 0 || $self->{'sTypoDescender'} != 0) {
         $table->{'Ascender'} = $self->{'sTypoAscender'};
         $table->{'Descender'} = $self->{'sTypoDescender'};
         $table->{'LineGap'} = $self->{'sTypoLineGap'};
         $self->{'usWinAscent'} = $self->{'sTypoAscender'} + $self->{'sTypoLineGap'};
         $self->{'usWinDescent'} = -$self->{'sTypoDescender'};
-    } 
-    elsif ($self->{'usWinAscent'} != 0 || $self->{'usWinDescent'} != 0)
-    {
+    }
+    elsif ($self->{'usWinAscent'} != 0 || $self->{'usWinDescent'} != 0) {
         $self->{'sTypoAscender'} = $table->{'Ascender'} = $self->{'usWinAscent'};
         $self->{'sTypoDescender'} = $table->{'Descender'} = -$self->{'usWinDescent'};
         $self->{'sTypoLineGap'} = $table->{'LineGap'} = 0;
     }
 
-    if ($self->{'Version'} < 3)
-    {
+    if ($self->{'Version'} < 3) {
         for ($i = 0; $i < 26; $i++)
         { $avg += $hmtx->{'advance'}[$map->{'val'}{$i + 0x0061}] * $weights[$i]; }
         $avg += $hmtx->{'advance'}[$map->{'val'}{0x0020}] * $weights[-1];
         $self->{'xAvgCharWidth'} = $avg / 1000;
     }
-    elsif ($self->{'Version'} > 2)
-    {
+    elsif ($self->{'Version'} > 2) {
         $i = 0; $avg = 0;
-        foreach (@{$hmtx->{'advance'}})
-        {
+        for (@{$hmtx->{'advance'}}) {
             next unless ($_);
             $i++;
             $avg += $_;
@@ -329,10 +307,8 @@ sub update
     }
 
     $self->{'ulUnicodeRange2'} &= ~0x2000000;
-    foreach $i (keys %{$map->{'val'}})
-    {
-        if ($i >= 0x10000)
-        {
+    for $i (keys %{$map->{'val'}}) {
+        if ($i >= 0x10000) {
             $self->{'ulUnicodeRange2'} |= 0x2000000;
             last;
         }
@@ -340,17 +316,16 @@ sub update
 
     $self->{'Version'} = 1 if (defined $self->{'ulCodePageRange1'} && $self->{'Version'} < 1);
     $self->{'Version'} = 2 if (defined $self->{'maxLookups'} && $self->{'Version'} < 2);
-    
+
     if ((exists $self->{' PARENT'}{'GPOS'} && $self->{' PARENT'}{'GPOS'}{' read'}) ||
-        (exists $self->{' PARENT'}{'GSUB'} && $self->{' PARENT'}{'GSUB'}{' read'}))
-    {
+        (exists $self->{' PARENT'}{'GSUB'} && $self->{' PARENT'}{'GSUB'}{' read'})) {
         # one or both of GPOS & GSUB exist and have been read or modified; so update usMaxContexts
         my ($lp, $ls);
         $lp = $self->{' PARENT'}{'GPOS'}->maxContext if exists $self->{' PARENT'}{'GPOS'};
         $ls = $self->{' PARENT'}{'GSUB'}->maxContext if exists $self->{' PARENT'}{'GSUB'};
         $self->{'maxLookups'} = $lp > $ls ? $lp : $ls;
     }
-    
+
     $self;
 }
 
@@ -359,16 +334,16 @@ sub update
 
 Set the ulCodePageRange and ulUnicodeRange fields based on characters actually present in the font.
 
-%map is a hash keyed by USV returning non-zero for characters present (e.g. use {'val'} 
+%map is a hash keyed by USV returning non-zero for characters present (e.g. use {'val'}
 a from Unicode cmap).
 
 The two optional parameters are percentage of characters within the codepage or unicode range that need
-to be present to constitute coverage. A threshold of 0 causes corresponding range bits to 
+to be present to constitute coverage. A threshold of 0 causes corresponding range bits to
 be set if any characters are present at all, while a negative value causes the corresponding
 range bits to be unchanged. Defaults are 50 and 0, respectively.
 
 For codepage bits, the threshold is percentage of characters between 0xC0 and 0xFF that need
-to be present to constitute coverage). For codepages other than 1252, 
+to be present to constitute coverage). For codepages other than 1252,
 characters (e.g., punctuation) that are defined identically to cp1252 are ignored
 for the purposes of this percentage calculation. Looks only for SBCS codepages, not DBCS.
 
@@ -382,32 +357,28 @@ the bit will be set if any of these ranges meet the threshold requirement.
 
 =cut
 
-sub guessRangeBits
-{
-    my ($self, $ucmap, $cp_threshold, $u_threshold) = @_; 
-    $cp_threshold = 50 unless defined ($cp_threshold); 
+sub guessRangeBits {
+    my ($self, $ucmap, $cp_threshold, $u_threshold) = @_;
+    $cp_threshold = 50 unless defined ($cp_threshold);
     $u_threshold  =  0 unless defined ($u_threshold);
     my $j;  # index into codepages or ranges
     my $u;  # USV
 
-    unless (ref($codepages[0]))
-    {
+    unless (ref($codepages[0])) {
         # One-time work to convert range data
-        
+
         # unpack codepages. But first make sure we have Zlib
         eval {require Compress::Zlib} || croak("Cannot unpack codepage data Compress::Zlib not available");
 
-        for ($j = 0; $j <= $#codepages; $j++)
-        {
+        for ($j = 0; $j <= $#codepages; $j++) {
             next unless $codepages[$j];
             $codepages[$j] = [unpack("n*", Compress::Zlib::uncompress(unpack("u", $codepages[$j])))];
             warn ("Got nothing for codepage # $j\n") if $#{$codepages[$j]} < 128;
         }
-        
+
         # convert Unicode array data to hash
         my @newRanges;
-        for ($j = 0; $j <= $#ranges; $j++)
-        {
+        for ($j = 0; $j <= $#ranges; $j++) {
             next unless $ranges[$j][2] =~ m/^([0-9a-f]{4,6})-([0-9a-f]{4,6})$/oi;
             my $s = hex ($1);
             my $e = hex ($2);
@@ -417,18 +388,16 @@ sub guessRangeBits
         @ranges = sort {$a->{'end'} <=> $b->{'end'}} (@newRanges);
     }
 
-    if ($cp_threshold >= 0)
-    {
+    if ($cp_threshold >= 0) {
         my $cpr;    # codepage range vector
         $cp_threshold = 100 if $cp_threshold > 100;
         vec($cpr, 63 ,1) = 0;   # Get all 64 bits into the vector
-        for $j (0 .. $#codepages)   # For each codepage
-        {
+        for $j (0 .. $#codepages) {  # For each codepage
+
             # Count the number of chars from @range part of codepage that are present in the font
             my $present = 0;
             my $total = 0;
-            foreach (0x20 .. 0xFF)
-            {
+            for (0x20 .. 0xFF) {
                 $u = $codepages[$j][$_];
                 next if $u == 0xFFFD;   # Ignore undefined things in codepage
                 # For codepage 1252, ignore upper ansi altogether
@@ -443,17 +412,15 @@ sub guessRangeBits
             #print STDERR "\n";
         }
         ($self->{'ulCodePageRange1'}, $self->{'ulCodePageRange2'}) = unpack ('V2', $cpr);
-    } 
+    }
 
-    if ($u_threshold >= 0)
-    {
+    if ($u_threshold >= 0) {
         my $ucr;    # Unicode range vector
         my @count;  # Count of chars present in each range
         $u_threshold  = 100 if $u_threshold  > 100;
         vec($ucr, 127,1) = 0;   # Get all 128 bits into the vector
-        $j = 0;  
-CHAR:   for $u (sort {$a <=> $b} keys %{$ucmap})
-        {
+        $j = 0;
+CHAR:   for $u (sort {$a <=> $b} keys %{$ucmap}) {
             while ($u > $ranges[$j]{'end'})
             {
                 last CHAR if ++$j > $#ranges;
@@ -461,9 +428,8 @@ CHAR:   for $u (sort {$a <=> $b} keys %{$ucmap})
             next if $u < $ranges[$j]{'start'};
             $count[$j]++ if $ucmap->{$u};
         }
-        foreach $j (0 .. $#ranges)
-        {
-            vec($ucr, $ranges[$j]{'bit'}, 1) = 1 if $u_threshold == 0 ? 
+        for $j (0 .. $#ranges) {
+            vec($ucr, $ranges[$j]{'bit'}, 1) = 1 if $u_threshold == 0 ?
                 ($count[$j] > 0) :
                 (($count[$j] * 100 / ($ranges[$j]{'end'} - $ranges[$j]{'start'} + 1)) >= $u_threshold);
         }
@@ -832,7 +798,7 @@ M55?4J"9=-IV\,2WFB6DS3^DR_:;#7#>WS4,;:09,EXVQ;CJMUWI<3E<4HS:1
 1^S:41S;,V<`#M=+Z'T-Z<84`
 EOT
 
-); 
+);
 
 # The following taken directly from OT Spec:
 
@@ -1020,14 +986,14 @@ None known
 
 =head1 AUTHOR
 
-Martin Hosken L<http://scripts.sil.org/FontUtils>. 
+Martin Hosken L<http://scripts.sil.org/FontUtils>.
 
 
 =head1 LICENSING
 
-Copyright (c) 1998-2016, SIL International (http://www.sil.org) 
+Copyright (c) 1998-2016, SIL International (http://www.sil.org)
 
-This module is released under the terms of the Artistic License 2.0. 
+This module is released under the terms of the Artistic License 2.0.
 For details, see the full text of the license in the file LICENSE.
 
 

@@ -1,8 +1,8 @@
-package Font::TTF::EBDT;
+package Font::OTF::EBDT;
 
 =head1 NAME
 
-Font::TTF::EBDT - Embeeded Bitmap Data Table
+Font::OTF::EBDT - Embeeded Bitmap Data Table
 
 =head1 DESCRIPTION
 
@@ -52,9 +52,9 @@ Only 7 is supported.
 
 use strict;
 use vars qw(@ISA);
-require Font::TTF::Table;
+require Font::OTF::Table;
 
-@ISA = qw(Font::TTF::Table);
+@ISA = qw(Font::OTF::Table);
 
 
 =head2 $t->read
@@ -64,8 +64,7 @@ This routine should be called _after_ {'EBLC'}->read.
 
 =cut
 
-sub read
-{
+sub read {
     my ($self) = shift;
     my ($fh);
     my ($i, $dat);
@@ -81,8 +80,7 @@ sub read
 
     $bst_array = $eblc->{'bitmapSizeTable'};
 
-    for ($i = 0; $i < $eblc->{'Num'}; $i++)
-    {
+    for ($i = 0; $i < $eblc->{'Num'}; $i++) {
         my ($bst) = $bst_array->[$i];
         my ($format) = $bst->{'imageFormat'};
         my ($offset) = $bst->{'imageDataOffset'};
@@ -105,8 +103,7 @@ sub read
 
             $p = 0;
             $o0 = $offsetArray->[$p++];
-            for ($c = $ista->{'firstGlyphIndex'}; $c <= $ista->{'lastGlyphIndex'}; $c++)
-            {
+            for ($c = $ista->{'firstGlyphIndex'}; $c <= $ista->{'lastGlyphIndex'}; $c++) {
                 my ($b) = {};
                 my ($o1) = $offsetArray->[$p++];
                 my ($len) = $o1 - $o0 - 8;
@@ -148,8 +145,7 @@ Update EBLC information using EBDT data.
 
 =cut
 
-sub get_regions
-{
+sub get_regions {
     my (@l) = @_;
     my (@r) = ();
     my ($e);
@@ -158,7 +154,7 @@ sub get_regions
 
     $first = $l[0];
     $last = $first - 1;
-    foreach $e (@l) {
+    for $e (@l) {
         if ($last + 1 != $e) {	# not contiguous
             $r[++$#r] = [$first, $last];
             $first = $e;
@@ -171,8 +167,7 @@ sub get_regions
     @r;
 }
 
-sub update
-{
+sub update {
     my ($self) = @_;
     my ($eblc) = $self->{' PARENT'}->{'EBLC'};
     my ($bst_array) = [];
@@ -249,8 +244,7 @@ Outputs the bitmap data of embedded bitmap for this font.
 
 =cut
 
-sub out
-{
+sub out {
     my ($self, $fh) = @_;
 
     return $self->SUPER::out($fh) unless $self->{' read'};
@@ -291,7 +285,7 @@ Only Format 7 is implemented.  XML output is not supported (yet).
 
 =head1 AUTHOR
 
-NIIBE Yutaka L<mailto:gniibe@fsij.org>.  
+NIIBE Yutaka L<mailto:gniibe@fsij.org>.
 This was written at the CodeFest Akihabara 2006 hosted by FSIJ.
 
 ?? patch sent with licensing requirements or not?
@@ -299,9 +293,9 @@ This was written at the CodeFest Akihabara 2006 hosted by FSIJ.
 
 =head1 LICENSING
 
-Copyright (c) 1998-2016, SIL International (http://www.sil.org) 
+Copyright (c) 1998-2016, SIL International (http://www.sil.org)
 
-This module is released under the terms of the Artistic License 2.0. 
+This module is released under the terms of the Artistic License 2.0.
 For details, see the full text of the license in the file LICENSE.
 
 

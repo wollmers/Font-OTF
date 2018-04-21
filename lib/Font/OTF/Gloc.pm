@@ -1,8 +1,8 @@
-package Font::TTF::Gloc;
+package Font::OTF::Gloc;
 
 =head1 NAME
 
-Font::TTF::Gloc - Offsets into Glat table for the start of the attributes for each glyph
+Font::OTF::Gloc - Offsets into Glat table for the start of the attributes for each glyph
 
 =head1 DESCRIPTION
 
@@ -29,14 +29,13 @@ If defined, an array of name table name ids indexed by attribute number.
 
 =cut
 
-use Font::TTF::Table;
-use Font::TTF::Utils;
+use Font::OTF::Table;
+use Font::OTF::Utils;
 use strict;
 use vars qw(@ISA);
-@ISA = qw(Font::TTF::Table);
+@ISA = qw(Font::OTF::Table);
 
-sub read
-{
+sub read {
     my ($self) = @_;
     $self->SUPER::read or return $self;
 
@@ -50,26 +49,22 @@ sub read
     ($flags, $self->{'numAttrib'}) = TTF_Unpack("SS", $dat);
     $numGlyphs = ($self->{' LENGTH'} - 8 - ($flags & 2 ? $self->{'numAttrib'} * 2 : 0)) / (($flags & 1) ? 4 : 2) - 1;
     $self->{'numGlyphs'} = $numGlyphs;
-    if ($flags & 1)
-    {
+    if ($flags & 1) {
         $fh->read($dat, 4 * ($numGlyphs + 1));
         $self->{'locations'} = [unpack("N*", $dat)];
     }
-    else
-    {
+    else {
         $fh->read($dat, 2 * ($numGlyphs + 1));
         $self->{'locations'} = [unpack("n*", $dat)];
     }
-    if ($flags & 2)
-    {
+    if ($flags & 2) {
         $fh->read($dat, 2 * $self->{'numAttrib'});
         $self->{'names'} = [unpack("n*", $dat)];
     }
     return $self;
 }
 
-sub out
-{
+sub out {
     my ($self, $fh) = @_;
     my ($numGlyphs) = 0;
     my ($flags, $num);
@@ -85,7 +80,7 @@ sub out
     { $fh->write(pack("n$num", @{$self->{'names'}})); }
 }
 
-=back 
+=back
 
 =head2 $t->minsize()
 
@@ -94,23 +89,20 @@ must be bad and should be deleted or whatever.
 
 =cut
 
-sub minsize
-{
-    return 8;
-}
+sub minsize { return 8; }
 
 1;
 
 =head1 AUTHOR
 
-Martin Hosken L<http://scripts.sil.org/FontUtils>. 
+Martin Hosken L<http://scripts.sil.org/FontUtils>.
 
 
 =head1 LICENSING
 
-Copyright (c) 1998-2016, SIL International (http://www.sil.org) 
+Copyright (c) 1998-2016, SIL International (http://www.sil.org)
 
-This module is released under the terms of the Artistic License 2.0. 
+This module is released under the terms of the Artistic License 2.0.
 For details, see the full text of the license in the file LICENSE.
 
 

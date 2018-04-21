@@ -1,8 +1,8 @@
-package Font::TTF::Head;
+package Font::OTF::Head;
 
 =head1 NAME
 
-Font::TTF::Head - The head table for a TTF Font
+Font::OTF::Head - The head table for a TTF Font
 
 =head1 DESCRIPTION
 
@@ -42,10 +42,10 @@ The two dates are held as an array of two unsigned longs (32-bits)
 use strict;
 use vars qw(@ISA %fields @field_info);
 
-require Font::TTF::Table;
-use Font::TTF::Utils;
+require Font::OTF::Table;
+use Font::OTF::Utils;
 
-@ISA = qw(Font::TTF::Table);
+@ISA = qw(Font::OTF::Table);
 @field_info = (
     'version' => 'v',
     'fontRevision' => 'f',
@@ -65,11 +65,9 @@ use Font::TTF::Utils;
     'indexToLocFormat' => 's',
     'glyphDataFormat' => 's');
 
-sub init
-{
+sub init {
     my ($k, $v, $c, $i);
-    for ($i = 0; $i < $#field_info; $i += 2)
-    {
+    for ($i = 0; $i < $#field_info; $i += 2) {
         ($k, $v, $c) = TTF_Init_Fields($field_info[$i], $c, $field_info[$i + 1]);
         next unless defined $k && $k ne "";
         $fields{$k} = $v;
@@ -83,8 +81,7 @@ Reads the table into memory thanks to some utility functions
 
 =cut
 
-sub read
-{
+sub read {
     my ($self) = @_;
     my ($dat);
 
@@ -106,8 +103,7 @@ if the file checksum is not to be considered.
 
 =cut
 
-sub out
-{
+sub out {
     my ($self, $fh) = @_;
 
     return $self->SUPER::out($fh) unless $self->{' read'};      # this is never true
@@ -124,8 +120,7 @@ must be bad and should be deleted or whatever.
 
 =cut
 
-sub minsize
-{
+sub minsize {
     return 54;
 }
 
@@ -136,8 +131,7 @@ Handles date process for the XML exporter
 
 =cut
 
-sub XML_element
-{
+sub XML_element {
     my ($self) = shift;
     my ($context, $depth, $key, $value) = @_;
     my ($fh) = $context->{'fh'};
@@ -152,7 +146,7 @@ sub XML_element
     $fh->print("$depth<$key>$output</$key>\n");
     $self;
 }
-    
+
 
 =head2 $t->update
 
@@ -160,8 +154,7 @@ Updates the head table based on the glyph data and the hmtx table
 
 =cut
 
-sub update
-{
+sub update {
     my ($self) = @_;
     my ($num, $i, $loc, $hmtx);
     my ($xMin, $yMin, $xMax, $yMax, $lsbx);
@@ -171,12 +164,11 @@ sub update
     $num = $self->{' PARENT'}{'maxp'}{'numGlyphs'};
     return undef unless (defined $self->{' PARENT'}{'hmtx'} && defined $self->{' PARENT'}{'loca'});
     $hmtx = $self->{' PARENT'}{'hmtx'}->read;
-    
+
     $self->{' PARENT'}{'loca'}->update;
     $hmtx->update;              # if we updated, then the flags will be set anyway.
     $lsbx = 1;
-    for ($i = 0; $i < $num; $i++)
-    {
+    for ($i = 0; $i < $num; $i++) {
         $loc = $self->{' PARENT'}{'loca'}{'glyphs'}[$i];
         next unless defined $loc;
         $loc->read->update_bbox;
@@ -190,10 +182,8 @@ sub update
     $self->{'yMin'} = $yMin;
     $self->{'xMax'} = $xMax;
     $self->{'yMax'} = $yMax;
-    if ($lsbx)
-    { $self->{'flags'} |= 2; }
-    else
-    { $self->{'flags'} &= ~2; }
+    if ($lsbx) { $self->{'flags'} |= 2; }
+    else { $self->{'flags'} &= ~2; }
     $self;
 }
 
@@ -206,14 +196,12 @@ storable time.
 
 =cut
 
-sub getdate
-{
+sub getdate {
     my ($self, $is_create) = @_;
     my (@arr) = (@{$self->{$is_create ? 'created' : 'modified'}});
 
     $arr[1] -= 2082844800;        # seconds between 1/Jan/1904 and 1/Jan/1970 (midnight)
-    if ($arr[1] < 0)
-    {
+    if ($arr[1] < 0) {
         $arr[1] += 0xFFFFFFF; $arr[1]++;
         $arr[0]--;
     }
@@ -229,14 +217,12 @@ time information.
 
 =cut
 
-sub setdate
-{
+sub setdate {
     my ($self, $time, $is_create) = @_;
     my (@arr);
 
     $arr[1] = $time;
-    if ($arr[1] >= 0x83DA4F80)
-    {
+    if ($arr[1] >= 0x83DA4F80) {
         $arr[1] -= 0xFFFFFFFF;
         $arr[1]--;
         $arr[0]++;
@@ -245,7 +231,7 @@ sub setdate
     $self->{$is_create ? 'created' : 'modified'} = \@arr;
     $self;
 }
-    
+
 
 1;
 
@@ -256,14 +242,14 @@ None known
 
 =head1 AUTHOR
 
-Martin Hosken L<http://scripts.sil.org/FontUtils>. 
+Martin Hosken L<http://scripts.sil.org/FontUtils>.
 
 
 =head1 LICENSING
 
-Copyright (c) 1998-2016, SIL International (http://www.sil.org) 
+Copyright (c) 1998-2016, SIL International (http://www.sil.org)
 
-This module is released under the terms of the Artistic License 2.0. 
+This module is released under the terms of the Artistic License 2.0.
 For details, see the full text of the license in the file LICENSE.
 
 

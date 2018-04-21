@@ -1,8 +1,8 @@
-package Font::TTF::Woff::MetaData;
+package Font::OTF::Woff::MetaData;
 
 =head1 NAME
 
-Font::TTF::Woff::MetaData - WOFF metadata
+Font::OTF::Woff::MetaData - WOFF metadata
 
 =head1 DESCRIPTION
 
@@ -10,10 +10,10 @@ Currently a stub, thus read() results in read_dat()
 
 =cut
 
-use Font::TTF::Utils;
-require Font::TTF::Table;
+use Font::OTF::Utils;
+require Font::OTF::Table;
 
-@ISA = qw(Font::TTF::Table);
+@ISA = qw(Font::OTF::Table);
 
 1;
 
@@ -23,9 +23,9 @@ Bob Hallissy. L<http://scripts.sil.org/FontUtils>.
 
 =head1 LICENSING
 
-Copyright (c) 1998-2016, SIL International (http://www.sil.org) 
+Copyright (c) 1998-2016, SIL International (http://www.sil.org)
 
-This module is released under the terms of the Artistic License 2.0. 
+This module is released under the terms of the Artistic License 2.0.
 For details, see the full text of the license in the file LICENSE.
 
 =cut

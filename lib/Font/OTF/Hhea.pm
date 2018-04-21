@@ -1,8 +1,8 @@
-package Font::TTF::Hhea;
+package Font::OTF::Hhea;
 
 =head1 NAME
 
-Font::TTF::Hhea - Horizontal Header table
+Font::OTF::Hhea - Horizontal Header table
 
 =head1 DESCRIPTION
 
@@ -31,10 +31,10 @@ This is a simplte table with just standards specified instance variables
 use strict;
 use vars qw(@ISA %fields @field_info);
 
-require Font::TTF::Table;
-use Font::TTF::Utils;
+require Font::OTF::Table;
+use Font::OTF::Utils;
 
-@ISA = qw(Font::TTF::Table);
+@ISA = qw(Font::OTF::Table);
 @field_info = (
     'version' => 'v',
     'Ascender' => 's',
@@ -49,11 +49,9 @@ use Font::TTF::Utils;
     'metricDataFormat' => '+10s',
     'numberOfHMetrics' => 'S');
 
-sub init
-{
+sub init {
     my ($k, $v, $c, $i);
-    for ($i = 0; $i < $#field_info; $i += 2)
-    {
+    for ($i = 0; $i < $#field_info; $i += 2) {
         ($k, $v, $c) = TTF_Init_Fields($field_info[$i], $c, $field_info[$i + 1]);
         next unless defined $k && $k ne "";
         $fields{$k} = $v;
@@ -67,8 +65,7 @@ Reads the table into memory as instance variables
 
 =cut
 
-sub read
-{
+sub read {
     my ($self) = @_;
     my ($dat);
 
@@ -87,8 +84,7 @@ Writes the table to a file either from memory or by copying.
 
 =cut
 
-sub out
-{
+sub out {
     my ($self, $fh) = @_;
 
     return $self->SUPER::out($fh) unless $self->{' read'};
@@ -106,8 +102,7 @@ must be bad and should be deleted or whatever.
 
 =cut
 
-sub minsize
-{
+sub minsize {
     return 36;
 }
 
@@ -118,8 +113,7 @@ Updates various parameters in the hhea table from the hmtx table.
 
 =cut
 
-sub update
-{
+sub update {
     my ($self) = @_;
     my ($hmtx) = $self->{' PARENT'}{'hmtx'};
     my ($glyphs);
@@ -134,14 +128,13 @@ sub update
     $glyphs = $self->{' PARENT'}{'loca'}{'glyphs'};
     $num = $self->{' PARENT'}{'maxp'}{'numGlyphs'};
 
-    for ($i = 0; $i < $num; $i++)
-    {
+    for ($i = 0; $i < $num; $i++) {
         $aw = $hmtx->{'advance'}[$i];
         $lsb = $hmtx->{'lsb'}[$i];
-        if (defined $glyphs->[$i])
-        { $ext = $lsb + $glyphs->[$i]->read->{'xMax'} - $glyphs->[$i]{'xMin'}; }
-        else
-        { $ext = $aw; }
+        if (defined $glyphs->[$i]) {
+        	$ext = $lsb + $glyphs->[$i]->read->{'xMax'} - $glyphs->[$i]{'xMin'};
+        }
+        else { $ext = $aw; }
         $maw = $aw if ($aw > $maw);
         $mlsb = $lsb if ($lsb < $mlsb or $i == 0);
         $mrsb = $aw - $ext if ($aw - $ext < $mrsb or $i == 0);
@@ -165,14 +158,14 @@ None known
 
 =head1 AUTHOR
 
-Martin Hosken L<http://scripts.sil.org/FontUtils>. 
+Martin Hosken L<http://scripts.sil.org/FontUtils>.
 
 
 =head1 LICENSING
 
-Copyright (c) 1998-2016, SIL International (http://www.sil.org) 
+Copyright (c) 1998-2016, SIL International (http://www.sil.org)
 
-This module is released under the terms of the Artistic License 2.0. 
+This module is released under the terms of the Artistic License 2.0.
 For details, see the full text of the license in the file LICENSE.
 
 

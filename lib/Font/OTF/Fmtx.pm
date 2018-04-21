@@ -1,8 +1,8 @@
-package Font::TTF::Fmtx;
+package Font::OTF::Fmtx;
 
 =head1 NAME
 
-Font::TTF::Fmtx - Font Metrics table
+Font::OTF::Fmtx - Font Metrics table
 
 =head1 DESCRIPTION
 
@@ -28,10 +28,10 @@ This is a simple table with just standards specified instance variables
 use strict;
 use vars qw(@ISA %fields @field_info);
 
-require Font::TTF::Table;
-use Font::TTF::Utils;
+require Font::OTF::Table;
+use Font::OTF::Utils;
 
-@ISA = qw(Font::TTF::Table);
+@ISA = qw(Font::OTF::Table);
 @field_info = (
     'version' => 'v',
     'glyphIndex' => 'L',
@@ -44,11 +44,9 @@ use Font::TTF::Utils;
     'verticalCaretHead' => 'c',
     'verticalCaretBase' => 'c');
 
-sub init
-{
+sub init {
     my ($k, $v, $c, $i);
-    for ($i = 0; $i < $#field_info; $i += 2)
-    {
+    for ($i = 0; $i < $#field_info; $i += 2) {
         ($k, $v, $c) = TTF_Init_Fields($field_info[$i], $c, $field_info[$i + 1]);
         next unless defined $k && $k ne "";
         $fields{$k} = $v;
@@ -62,8 +60,7 @@ Reads the table into memory as instance variables
 
 =cut
 
-sub read
-{
+sub read {
     my ($self) = @_;
     my ($dat);
 
@@ -82,8 +79,7 @@ Writes the table to a file either from memory or by copying.
 
 =cut
 
-sub out
-{
+sub out {
     my ($self, $fh) = @_;
 
     return $self->SUPER::out($fh) unless $self->{' read'};
@@ -102,14 +98,14 @@ None known
 
 =head1 AUTHOR
 
-Jonathan Kew L<http://scripts.sil.org/FontUtils>. 
+Jonathan Kew L<http://scripts.sil.org/FontUtils>.
 
 
 =head1 LICENSING
 
-Copyright (c) 1998-2016, SIL International (http://www.sil.org) 
+Copyright (c) 1998-2016, SIL International (http://www.sil.org)
 
-This module is released under the terms of the Artistic License 2.0. 
+This module is released under the terms of the Artistic License 2.0.
 For details, see the full text of the license in the file LICENSE.
 
 

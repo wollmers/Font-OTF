@@ -1,15 +1,15 @@
-package Font::TTF::Delta;
+package Font::OTF::Delta;
 
-=head1 NAME 
+=head1 NAME
 
-Font::TTF::Delta - Opentype Device tables
+Font::OTF::Delta - Opentype Device tables
 
 =head1 DESCRIPTION
 
 Each device table corresponds to a set of deltas for a particular point over
 a range of ppem values.
 
-=over 
+=over
 
 =item first
 
@@ -29,14 +29,14 @@ first and last inclusive.
 This is the fmt used (log2 of number bits per value) when the device table was
 read. It is recalculated on output.
 
-=back 
+=back
 
 =head1 METHODS
 
 =cut
 
 use strict;
-use Font::TTF::Utils;
+use Font::OTF::Utils;
 
 =head2 new
 
@@ -44,8 +44,7 @@ Creates a new device table
 
 =cut
 
-sub new
-{
+sub new {
     my ($class) = @_;
     my ($self) = {};
 
@@ -59,8 +58,7 @@ Reads a device table from the given IO object at the current location
 
 =cut
 
-sub read
-{
+sub read {
     my ($self, $fh) = @_;
     my ($dat, $fmt, $num, $i, $j, $mask);
 
@@ -74,10 +72,8 @@ sub read
 
     $mask = (0xffff << (16 - $fmt)) & 0xffff;
     $j = 0;
-    for ($i = $self->{'first'}; $i <= $self->{'last'}; $i++)
-    {
-        if ($j == 0)
-        {
+    for ($i = $self->{'first'}; $i <= $self->{'last'}; $i++) {
+        if ($j == 0) {
             $num = TTF_Unpack("S", substr($dat, 0, 2));
             substr($dat, 0, 2) = '';
         }
@@ -97,35 +93,28 @@ returns the data to be output if $style != 0
 
 =cut
 
-sub out
-{
+sub out {
     my ($self, $fh, $style) = @_;
     my ($dat, $fmt, $num, $mask, $j, $f, $out);
 
-    foreach $f (@{$self->{'val'}})
-    {
+    for $f (@{$self->{'val'}}) {
         my ($tfmt) = $f > 0 ? $f + 1 : -$f;
         $fmt = $tfmt if $tfmt > $fmt;
     }
 
-    if ($fmt > 8)
-    { $fmt = 3; }
-    elsif ($fmt > 2)
-    { $fmt = 2; }
-    else
-    { $fmt = 1; }
+    if ($fmt > 8) { $fmt = 3; }
+    elsif ($fmt > 2) { $fmt = 2; }
+    else { $fmt = 1; }
 
     $out = TTF_Pack("S3", $self->{'first'}, $self->{'last'}, $fmt);
 
     $fmt = 1 << $fmt;
     $mask = 0xffff >> (16 - $fmt);
     $j = 0; $dat = 0;
-    foreach $f (@{$self->{'val'}})
-    {
+    for $f (@{$self->{'val'}}) {
         $dat |= ($f & $mask) << (16 - $fmt - $j);
         $j += $fmt;
-        if ($j >= 16)
-        {
+        if ($j >= 16) {
             $j = 0;
             $out .= TTF_Pack("S", $dat);
             $dat = 0;
@@ -143,8 +132,7 @@ compression purposes
 
 =cut
 
-sub signature
-{
+sub signature {
     my ($self) = @_;
     return join (",", $self->{'first'}, $self->{'last'}, @{$self->{'val'}});
 }
@@ -156,8 +144,7 @@ Outputs a delta in XML
 
 =cut
 
-sub out_xml
-{
+sub out_xml {
     my ($self, $context, $depth) = @_;
     my ($fh) = $context->{'fh'};
 
@@ -170,14 +157,14 @@ sub out_xml
 
 =head1 AUTHOR
 
-Martin Hosken L<http://scripts.sil.org/FontUtils>. 
+Martin Hosken L<http://scripts.sil.org/FontUtils>.
 
 
 =head1 LICENSING
 
-Copyright (c) 1998-2016, SIL International (http://www.sil.org) 
+Copyright (c) 1998-2016, SIL International (http://www.sil.org)
 
-This module is released under the terms of the Artistic License 2.0. 
+This module is released under the terms of the Artistic License 2.0.
 For details, see the full text of the license in the file LICENSE.
 
 

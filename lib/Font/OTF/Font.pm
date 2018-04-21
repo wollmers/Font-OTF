@@ -452,8 +452,8 @@ sub out {
     unless (ref($fname)) {
         $fh = IO::File->new("+>$fname") || return warn("Unable to open $fname for writing"), undef;
         binmode $fh;
-    } else
-    { $fh = $fname; }
+    }
+    else { $fh = $fname; }
 
     $self->{' oname'} = $fname;
     $self->{' outfile'} = $fh;
@@ -755,8 +755,7 @@ dangling circular references will exist.
 sub release {
     my ($self) = @_;
 
-# delete stuff that we know we can, here
-
+    # delete stuff that we know we can
     my @tofree = map { delete $self->{$_} } keys %{$self};
 
     while (my $item = shift @tofree) {
@@ -766,7 +765,7 @@ sub release {
         elsif (UNIVERSAL::isa($ref, 'HASH')) { release($item); }
     }
 
-# check that everything has gone - it better had!
+    # check that everything has gone - it better had!
     for my $key (keys %{$self}) {
         warn ref($self) . " still has '$key' key left after release.\n";
     }

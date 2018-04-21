@@ -1,8 +1,8 @@
-package Font::TTF::Name;
+package Font::OTF::Name;
 
 =head1 NAME
 
-Font::TTF::Name - String table for a TTF font
+Font::OTF::Name - String table for a TTF font
 
 =head1 DESCRIPTION
 
@@ -17,12 +17,12 @@ array order is different from the stored array order (platform, encoding,
 language, number) to allow for easy manipulation of strings by number (which is
 what I guess most people will want to do).
 
-By default, C<$Font::TTF::Name::utf8> is set to 1, and strings will be stored as UTF8 wherever
+By default, C<$Font::OTF::Name::utf8> is set to 1, and strings will be stored as UTF8 wherever
 possible. The method C<is_utf8> can be used to find out if a string in a particular
 platform and encoding will be returned as UTF8. Unicode strings are always
 converted if utf8 is requested. Otherwise, strings are stored according to platform:
 
-You now have to set <$Font::TTF::Name::utf8> to 0 to get the old behaviour.
+You now have to set <$Font::OTF::Name::utf8> to 0 to get the old behaviour.
 
 =over 4
 
@@ -65,22 +65,20 @@ An array of arrays, etc.
 
 use strict;
 use vars qw(@ISA $VERSION @apple_encs @apple_encodings $utf8 $cp_1252 @cp_1252 %win_langs %langs_win %langs_mac @ms_langids @mac_langs);
-use Font::TTF::Table;
-use Font::TTF::Utils;
-@ISA = qw(Font::TTF::Table);
+use Font::OTF::Table;
+use Font::OTF::Utils;
+@ISA = qw(Font::OTF::Table);
 
 $utf8 = 1;
 
 {
     my ($count, $i);
     eval {require Compress::Zlib;};
-    unless ($@)
-    {
-        for ($i = 0; $i <= $#apple_encs; $i++)
-        {
+    unless ($@) {
+        for ($i = 0; $i <= $#apple_encs; $i++) {
             $apple_encodings[0][$i] = [unpack("n*", Compress::Zlib::uncompress(unpack("u", $apple_encs[$i])))]
                 if (defined $apple_encs[$i]);
-            foreach (0 .. 127)
+            for (0 .. 127)
             { $apple_encodings[0][$i][$_] = $_; }
             $count = 0;
             $apple_encodings[1][$i] = {map {$_ => $count++} @{$apple_encodings[0][$i]}};
@@ -89,28 +87,22 @@ $utf8 = 1;
         $count = 0;
         $cp_1252[1] = {map({$_ => $count++} @{$cp_1252[0]})};
     }
-    for ($i = 0; $i < $#ms_langids; $i++)
-    {
-        if (defined $ms_langids[$i][1])
-        {
+    for ($i = 0; $i < $#ms_langids; $i++) {
+        if (defined $ms_langids[$i][1]) {
             my ($j);
-            for ($j = 0; $j < $#{$ms_langids[$i][1]}; $j++)
-            {
+            for ($j = 0; $j < $#{$ms_langids[$i][1]}; $j++) {
                 my ($v) = $ms_langids[$i][1][$j];
-                if ($v =~ m/^-/o)
-                { $win_langs{(($j + 1) << 10) + $i} = $ms_langids[$i][0] . $v; }
-                else
-                { $win_langs{(($j + 1) << 10) + $i} = $v; }
+                if ($v =~ m/^-/o) { $win_langs{(($j + 1) << 10) + $i} = $ms_langids[$i][0] . $v; }
+                else { $win_langs{(($j + 1) << 10) + $i} = $v; }
             }
         }
-        else
-        { $win_langs{$i + 0x400} = $ms_langids[$i][0]; }
+        else { $win_langs{$i + 0x400} = $ms_langids[$i][0]; }
     }
     %langs_win = map {my ($t) = $win_langs{$_}; my (@res) = ($t => $_); push (@res, $t => $_) if ($t =~ s/-.*$//o && ($_ & 0xFC00) == 0x400); @res} keys %win_langs;
     $i = 0;
     %langs_mac = map {$_ => $i++} @mac_langs;
 }
-    
+
 
 $VERSION = 1.1;             # MJPH  17-JUN-2000     Add utf8 support
 # $VERSION = 1.001;           # MJPH  10-AUG-1998     Put $number first in list
@@ -121,8 +113,7 @@ Reads all the names into memory
 
 =cut
 
-sub read
-{
+sub read {
     my ($self) = @_;
     $self->SUPER::read or return $self;
 
@@ -131,22 +122,23 @@ sub read
 
     $fh->read($dat, 6);
     ($num, $stroff) = unpack("x2nn", $dat);
-    for ($i = 0; $i < $num; $i++)
-    {
+    for ($i = 0; $i < $num; $i++) {
         use bytes;              # hack to fix bugs in 5.8.7
         read($fh, $dat, 12);
         ($pid, $eid, $lid, $nid, $len, $off) = unpack("n6", $dat);
         $here = $fh->tell();
         $fh->seek($self->{' OFFSET'} + $stroff + $off, 0);
         $fh->read($dat, $len);
-        if ($utf8)
-        {
-            if ($pid == 1 && defined $apple_encodings[0][$eid])
-            { $dat = TTF_word_utf8(pack("n*", map({$apple_encodings[0][$eid][$_]} unpack("C*", $dat)))); }
-            elsif ($pid == 2 && $eid == 2 && @cp_1252)
-            { $dat = TTF_word_utf8(pack("n*", map({$cp_1252[0][$_]} unpack("C*", $dat)))); }
-            elsif ($pid == 0 || $pid == 3 || ($pid == 2 && $eid == 1))
-            { $dat = TTF_word_utf8($dat); }
+        if ($utf8) {
+            if ($pid == 1 && defined $apple_encodings[0][$eid]) {
+            	$dat = TTF_word_utf8(pack("n*", map({$apple_encodings[0][$eid][$_]} unpack("C*", $dat))));
+            }
+            elsif ($pid == 2 && $eid == 2 && @cp_1252) {
+            	$dat = TTF_word_utf8(pack("n*", map({$cp_1252[0][$_]} unpack("C*", $dat))));
+            }
+            elsif ($pid == 0 || $pid == 3 || ($pid == 2 && $eid == 1)) {
+            	$dat = TTF_word_utf8($dat);
+            }
         }
         $self->{'strings'}[$nid][$pid][$eid]{$lid} = $dat;
         $fh->seek($here, 0);
@@ -161,8 +153,7 @@ Writes out all the strings
 
 =cut
 
-sub out
-{
+sub out {
     my ($self, $fh) = @_;
     my ($pid, $eid, $lid, $nid, $todo, @todo);
     my ($len, $loc, $stroff, $endloc, $str_trans);
@@ -174,33 +165,31 @@ sub out
     $offsets[0] = 0;
     $loc = $fh->tell();
     $fh->print(pack("n3", 0, 0, 0));
-    foreach $nid (0 .. $#{$self->{'strings'}})
-    {
-        foreach $pid (0 .. $#{$self->{'strings'}[$nid]})
-        {
-            foreach $eid (0 .. $#{$self->{'strings'}[$nid][$pid]})
-            {
-                foreach $lid (sort keys %{$self->{'strings'}[$nid][$pid][$eid]})
-                {
+    for $nid (0 .. $#{$self->{'strings'}}) {
+        for $pid (0 .. $#{$self->{'strings'}[$nid]}) {
+            for $eid (0 .. $#{$self->{'strings'}[$nid][$pid]}) {
+                for $lid (sort keys %{$self->{'strings'}[$nid][$pid][$eid]}) {
                     $str_trans = $self->{'strings'}[$nid][$pid][$eid]{$lid};
-                    if ($utf8)
-                    {
-                        if ($pid == 1 && defined $apple_encodings[1][$eid])
-                        { $str_trans = pack("C*",
+                    if ($utf8) {
+                        if ($pid == 1 && defined $apple_encodings[1][$eid]) {
+                        		$str_trans = pack("C*",
                                 map({$apple_encodings[1][$eid]{$_} || 0x3F} unpack("n*",
-                                TTF_utf8_word($str_trans)))); }
-                        elsif ($pid == 2 && $eid == 2 && @cp_1252)
-                        { $str_trans = pack("C*",
+                                TTF_utf8_word($str_trans))));
+                        }
+                        elsif ($pid == 2 && $eid == 2 && @cp_1252) {
+                        		$str_trans = pack("C*",
                                 map({$cp_1252[1][$eid]{$_} || 0x3F} unpack("n*",
-                                TTF_utf8_word($str_trans)))); }
-                        elsif ($pid == 2 && $eid == 0)
-                        { $str_trans =~ s/[\xc0-\xff][\x80-\xbf]+/?/og; }
-                        elsif ($pid == 0 || $pid == 3 || ($pid == 2 && $eid == 1))
-                        { $str_trans = TTF_utf8_word($str_trans); }
+                                TTF_utf8_word($str_trans))));
+                        }
+                        elsif ($pid == 2 && $eid == 0) {
+                        	$str_trans =~ s/[\xc0-\xff][\x80-\xbf]+/?/og;
+                        }
+                        elsif ($pid == 0 || $pid == 3 || ($pid == 2 && $eid == 1)) {
+                        	$str_trans = TTF_utf8_word($str_trans);
+                        }
                     }
                     my ($str_ind);
-                    unless (defined $dedup{$str_trans})
-                    {
+                    unless (defined $dedup{$str_trans}) {
                         use bytes;
                         $dedup{$str_trans} = $strcount;
                         $strings[$strcount] = $str_trans;
@@ -216,12 +205,12 @@ sub out
 
     @todo = (sort {$a->[0] <=> $b->[0] || $a->[1] <=> $b->[1] || $a->[2] <=> $b->[2]
             || $a->[3] <=> $b->[3]} @todo);
-    foreach $todo (@todo)
-    { $fh->print(pack("n6", @{$todo}[0..3], $offsets[$todo->[4]+1] - $offsets[$todo->[4]], $offsets[$todo->[4]])); }
-    
+    for $todo (@todo) {
+    	$fh->print(pack("n6", @{$todo}[0..3], $offsets[$todo->[4]+1] - $offsets[$todo->[4]], $offsets[$todo->[4]]));
+    }
+
     $stroff = $fh->tell() - $loc;
-    foreach my $str (@strings)
-    { $fh->print($str); }
+    for my $str (@strings) { $fh->print($str); }
 
     $endloc = $fh->tell();
     $fh->seek($loc, 0);
@@ -237,8 +226,7 @@ Outputs the string element in nice XML (which is all the table really!)
 
 =cut
 
-sub XML_element
-{
+sub XML_element {
     my ($self) = shift;
     my ($context, $depth, $key, $value) = @_;
     my ($fh) = $context->{'fh'};
@@ -246,16 +234,12 @@ sub XML_element
 
     return $self->SUPER::XML_element(@_) unless ($key eq 'strings');
 
-    foreach $nid (0 .. $#{$self->{'strings'}})
-    {
+    for $nid (0 .. $#{$self->{'strings'}}) {
         next unless ref($self->{'strings'}[$nid]);
 #        $fh->print("$depth<strings id='$nid'>\n");
-        foreach $pid (0 .. $#{$self->{'strings'}[$nid]})
-        {
-            foreach $eid (0 .. $#{$self->{'strings'}[$nid][$pid]})
-            {
-                foreach $lid (sort {$a <=> $b} keys %{$self->{'strings'}[$nid][$pid][$eid]})
-                {
+        for $pid (0 .. $#{$self->{'strings'}[$nid]}) {
+            for $eid (0 .. $#{$self->{'strings'}[$nid][$pid]}) {
+                for $lid (sort {$a <=> $b} keys %{$self->{'strings'}[$nid][$pid][$eid]}) {
                     my ($lang) = $self->get_lang($pid, $lid) || $lid;
                     $fh->printf("%s<string id='%s' platform='%s' encoding='%s' language='%s'>\n%s%s%s\n%s</string>\n",
                             $depth, $nid, $pid, $eid, $lang, $depth,
@@ -275,20 +259,17 @@ Store strings in the right place
 
 =cut
 
-sub XML_end
-{
+sub XML_end {
     my ($self) = shift;
     my ($context, $tag, %attrs) = @_;
 
-    if ($tag eq 'string')
-    {
+    if ($tag eq 'string') {
         my ($lid) = $self->find_name($attrs{'platform'}, $attrs{'language'}) || $attrs{'language'};
         $self->{'strings'}[$attrs{'id'}][$attrs{'platform'}][$attrs{'encoding'}]{$lid}
             = $context->{'text'};
         return $context;
     }
-    else
-    { return $self->SUPER::XML_end(@_); }
+    else { return $self->SUPER::XML_end(@_); }
 }
 
 =head2 $t->minsize()
@@ -298,10 +279,7 @@ must be bad and should be deleted or whatever.
 
 =cut
 
-sub minsize
-{
-    return 6;
-}
+sub minsize { return 6; }
 
 =head2 is_utf8($pid, $eid)
 
@@ -309,8 +287,7 @@ Returns whether a string of a given platform and encoding is going to be in UTF8
 
 =cut
 
-sub is_utf8
-{
+sub is_utf8 {
     my ($self, $pid, $eid) = @_;
 
     return ($utf8 && ($pid == 0 || $pid == 3 || ($pid == 2 && ($eid != 2 || @cp_1252))
@@ -325,30 +302,24 @@ array context the pid, eid & lid as well
 
 =cut
 
-sub find_name
-{
+sub find_name {
     my ($self, $nid) = @_;
     my ($res, $pid, $eid, $lid, $look, $k);
 
     my (@lookup) = ([3, 1, 1033], [3, 1, -1], [3, 0, 1033], [3, 0, -1], [2, 1, -1], [2, 2, -1], [2, 0, -1],
                     [0, 0, 0], [1, 0, 0]);
-    foreach $look (@lookup)
-    {
+    for $look (@lookup) {
         ($pid, $eid, $lid) = @$look;
-        if ($lid == -1)
-        {
-            foreach $k (keys %{$self->{'strings'}[$nid][$pid][$eid]})
-            {
-                if (($res = $self->{strings}[$nid][$pid][$eid]{$k}) ne '')
-                {
+        if ($lid == -1) {
+            for $k (keys %{$self->{'strings'}[$nid][$pid][$eid]}) {
+                if (($res = $self->{strings}[$nid][$pid][$eid]{$k}) ne '') {
                     $lid = $k;
                     last;
                 }
             }
-        } else
-        { $res = $self->{strings}[$nid][$pid][$eid]{$lid} }
-        if ($res ne '')
-        { return wantarray ? ($res, $pid, $eid, $lid) : $res; }
+        }
+        else { $res = $self->{strings}[$nid][$pid][$eid]{$lid} }
+        if ($res ne '') { return wantarray ? ($res, $pid, $eid, $lid) : $res; }
     }
     return '';
 }
@@ -360,8 +331,7 @@ Removes all strings with the given name id from the table.
 
 =cut
 
-sub remove_name
-{
+sub remove_name {
     my ($self, $nid) = @_;
 
     delete $self->{'strings'}[$nid];
@@ -374,44 +344,36 @@ this module can handle. If $lang is set, it is interpretted as a language
 tag and if the particular language of a string is found to match, then
 that string is changed, otherwise no change occurs.
 
-If supplied, @cover should be a list of references to two-element arrays 
+If supplied, @cover should be a list of references to two-element arrays
 containing pid,eid pairs that should be added to the name table if not already present.
 
-This function does not add any names to the table unless @cover is supplied. 
+This function does not add any names to the table unless @cover is supplied.
 
 =cut
 
-sub set_name
-{
+sub set_name {
     my ($self, $nid, $str, $lang, @cover) = @_;
     my ($pid, $eid, $lid, $c);
 
-    foreach $pid (0 .. $#{$self->{'strings'}[$nid]})
-    {
+    for $pid (0 .. $#{$self->{'strings'}[$nid]}) {
         my $strNL = $str;
         $strNL =~ s/(?:\r?)\n/\r\n/og  if $pid == 3;
         $strNL =~ s/(?:\r?)\n/\r/og    if $pid == 1;
-        foreach $eid (0 .. $#{$self->{'strings'}[$nid][$pid]})
-        {
-            if (defined $self->{'strings'}[$nid][$pid][$eid])
-            {
+        for $eid (0 .. $#{$self->{'strings'}[$nid][$pid]}) {
+            if (defined $self->{'strings'}[$nid][$pid][$eid]) {
                 my ($isincover) = 0;
-                foreach $c (@cover)
-                {
-                    if ($c->[0] == $pid && $c->[1] == $eid)
-                    {
+                for $c (@cover) {
+                    if ($c->[0] == $pid && $c->[1] == $eid) {
                         $isincover = 1;
                         last;
                     }
                 }
                 push(@cover, [$pid, $eid]) if (!$isincover);
             }
-            foreach $lid (keys %{$self->{'strings'}[$nid][$pid][$eid]})
-            {
+            for $lid (keys %{$self->{'strings'}[$nid][$pid][$eid]}) {
                 next unless (!defined $lang || $self->match_lang($pid, $lid, $lang));
                 $self->{'strings'}[$nid][$pid][$eid]{$lid} = $strNL;
-                foreach $c (0 .. $#cover)
-                {
+                for $c (0 .. $#cover) {
                     next unless (defined $cover[$c] && $cover[$c][0] == $pid && $cover[$c][1] == $eid);
                     delete $cover[$c];
                     last;
@@ -419,8 +381,7 @@ sub set_name
             }
         }
     }
-    foreach $c (@cover)
-    {
+    for $c (@cover) {
         next unless (defined $c && scalar @$c);
         my ($pid, $eid) = @{$c};
         my ($lid) = $self->find_lang($pid, $lang);
@@ -432,7 +393,7 @@ sub set_name
     return $self;
 }
 
-=head2 Font::TTF::Name->match_lang($pid, $lid, $lang)
+=head2 Font::OTF::Name->match_lang($pid, $lid, $lang)
 
 Compares the language associated to the string of given platform and language
 with the given language tag. If the language matches the tag (i.e. is equal
@@ -442,8 +403,7 @@ tag.
 
 =cut
 
-sub match_lang
-{
+sub match_lang {
     my ($self, $pid, $lid, $lang) = @_;
     my ($langid) = $self->get_lang($pid, $lid);
 
@@ -452,66 +412,53 @@ sub match_lang
     return !index(lc($langid), lc($lang)) || !index(lc($lang), lc($langid));
 }
 
-=head2 Font::TTF::Name->get_lang($pid, $lid)
+=head2 Font::OTF::Name->get_lang($pid, $lid)
 
 Returns the language tag associated with a particular platform and language id
 
 =cut
 
-sub get_lang
-{
+sub get_lang {
     my ($self, $pid, $lid) = @_;
 
-    if ($pid == 3)
-    { return $win_langs{$lid}; }
-    elsif ($pid == 1)
-    { return $mac_langs[$lid]; }
+    if ($pid == 3) { return $win_langs{$lid}; }
+    elsif ($pid == 1) { return $mac_langs[$lid]; }
     return '';
 }
 
 
-=head2 Font::TTF::Name->find_lang($pid, $lang)
+=head2 Font::OTF::Name->find_lang($pid, $lang)
 
 Looks up the language name and returns a lang id if one exists
 
 =cut
 
-sub find_lang
-{
+sub find_lang {
     my ($self, $pid, $lang) = @_;
 
-    if ($pid == 3)
-    { return $langs_win{$lang}; }
-    elsif ($pid == 1)
-    { return $langs_mac{$lang}; }
+    if ($pid == 3) { return $langs_win{$lang}; }
+    elsif ($pid == 1) { return $langs_mac{$lang}; }
     return undef;
 }
 
-=head2 Font::TTF::Name->pe_list()
+=head2 Font::OTF::Name->pe_list()
 
-Returns an array of references to two-element arrays 
+Returns an array of references to two-element arrays
 containing pid,eid pairs that already exist in this name table.
 Useful for creating @cover parameter to set_name().
 
 =cut
 
-sub pe_list
-{
+sub pe_list {
     my ($self) = @_;
     my (@cover, %ids);
 
-    foreach my $nid (0 .. $#{$self->{'strings'}})
-    {
-        if (defined $self->{'strings'}[$nid])
-        {
-            foreach my $pid (0 .. $#{$self->{'strings'}[$nid]})
-            {
-                if (defined $self->{'strings'}[$nid][$pid])
-                {
-                    foreach my $eid (0 .. $#{$self->{'strings'}[$nid][$pid]})
-                    {
-                        if (defined $self->{'strings'}[$nid][$pid][$eid] && !$ids{$pid}{$eid})
-                        {
+    for my $nid (0 .. $#{$self->{'strings'}}) {
+        if (defined $self->{'strings'}[$nid]) {
+            for my $pid (0 .. $#{$self->{'strings'}[$nid]}) {
+                if (defined $self->{'strings'}[$nid][$pid]) {
+                    for my $eid (0 .. $#{$self->{'strings'}[$nid][$pid]}) {
+                        if (defined $self->{'strings'}[$nid][$pid][$eid] && !$ids{$pid}{$eid}) {
                             $ids{$pid}{$eid} = 1;
                             push @cover, [$pid, $eid];
                         }
@@ -665,7 +612,7 @@ EOT
 
 
 @ms_langids = ( [""],
-    ['ar', ["-SA", "-IQ", "-EG", "-LY", "-DZ", "-MA", "-TN", 
+    ['ar', ["-SA", "-IQ", "-EG", "-LY", "-DZ", "-MA", "-TN",
             "-OM", "-YE", "-SY", "-JO", "-LB", "-KW", "-AE",
             "-BH", "-QA", "-Ploc-SA", "-145"]],
     ['bg-BG'],
@@ -704,7 +651,7 @@ EOT
     ["rm-CH"],
     ["ro", ["-RO", "_MD"]],
     ["ru-RU"],
-    ["hr", ["-HR", "-Latn-CS", "Cyrl-CS", "-BA", "", "-Latn-BA", "-Cyrl-BA", 
+    ["hr", ["-HR", "-Latn-CS", "Cyrl-CS", "-BA", "", "-Latn-BA", "-Cyrl-BA",
             "", "". "", "", "", "", "", "", "", "", "", "", "", "", "", "", "",
             "bs-Cyrl", "bs-Latn", "sr-Cyrl", "sr-Latn", "", "bs", "sr"]],
     ["sk-SK"],
@@ -809,7 +756,7 @@ EOT
     ["dv-MV"],
     ["bin-NG"],
     ["fuv", ["-NG", "", "", "", "", "", "", "", "", "", "", "", "", "", "",
-            "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "ff-Latn"]], 
+            "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "ff-Latn"]],
     ["ha", ["-Latn-NG", "", "", "", "", "", "", "", "", "", "", "", "", "", "",
             "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "-Latn"]],
     ["ibb-NG"],
@@ -900,14 +847,14 @@ once Perl 5.6 has been released and I can find all the mapping tables, etc.
 
 =head1 AUTHOR
 
-Martin Hosken L<http://scripts.sil.org/FontUtils>. 
+Martin Hosken L<http://scripts.sil.org/FontUtils>.
 
 
 =head1 LICENSING
 
-Copyright (c) 1998-2016, SIL International (http://www.sil.org) 
+Copyright (c) 1998-2016, SIL International (http://www.sil.org)
 
-This module is released under the terms of the Artistic License 2.0. 
+This module is released under the terms of the Artistic License 2.0.
 For details, see the full text of the license in the file LICENSE.
 
 

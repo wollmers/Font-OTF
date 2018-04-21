@@ -1,8 +1,8 @@
-package Font::TTF::Coverage;
+package Font::OTF::Coverage;
 
 =head1 NAME
 
-Font::TTF::Coverage - Opentype coverage and class definition objects
+Font::OTF::Coverage - Opentype coverage and class definition objects
 
 =head1 DESCRIPTION
 
@@ -12,7 +12,7 @@ say that a coverage table is a class definition in which the class definition
 for each glyph is the corresponding index in the coverage table. The resulting
 data structure is that a Coverage table has the following fields:
 
-=over 
+=over
 
 =item cover
 
@@ -53,25 +53,22 @@ If no $isCover, then vals is a hash of glyphs against class values.
 
 our $dontsort;
 
-sub new
-{
+sub new {
     my ($class) = shift;
     my ($isCover) = shift;
     my ($self) = {};
 
     $self->{'cover'} = $isCover;
-    if ($isCover)
-    {
+    if ($isCover) {
         $self->{'count'} = 0;
         my ($v);
-        foreach $v (@_)
+        for $v (@_)
         { $self->{'val'}{$v} = $self->{'count'}++; }
     }
-    else
-    {
+    else {
         $self->{'max'} = 0;
         $self->{'val'} = {@_};
-        foreach (values %{$self->{'val'}}) {$self->{'max'} = $_ if $_ > $self->{'max'}}
+        for (values %{$self->{'val'}}) {$self->{'max'} = $_ if $_ > $self->{'max'}}
     }
     bless $self, $class;
 }
@@ -83,8 +80,7 @@ Reads the coverage/class table from the given file handle
 
 =cut
 
-sub read
-{
+sub read {
     my ($self, $fh) = @_;
     my ($dat, $fmt, $num, $i, $c);
 
@@ -92,15 +88,13 @@ sub read
     ($fmt, $num) = unpack("n2", $dat);
     $self->{'fmt'} = $fmt;
 
-    if ($self->{'cover'})
-    {
-        if ($fmt == 1)
-        {
+    if ($self->{'cover'}) {
+        if ($fmt == 1) {
             $fh->read($dat, $num << 1);
             map {$self->{'val'}{$_} = $i++} unpack("n*", $dat);
             $self->{'count'} = $num;
-        } elsif ($fmt == 2)
-        {
+        }
+        elsif ($fmt == 2) {
             $fh->read($dat, $num * 6);
             for ($i = 0; $i < $num; $i++)
             {
@@ -109,18 +103,17 @@ sub read
             }
             $self->{'count'} = $c;
         }
-    } elsif ($fmt == 1)
-    {
+    }
+    elsif ($fmt == 1) {
         $fh->read($dat, 2);
         $first = $num;
         ($num) = unpack("n", $dat);
         $fh->read($dat, $num << 1);
         map {$self->{'val'}{$first++} = $_; $self->{'max'} = $_ if ($_ > $self->{'max'})} unpack("n*", $dat);
-    } elsif ($fmt == 2)
-    {
+    }
+    elsif ($fmt == 2) {
         $fh->read($dat, $num * 6);
-        for ($i = 0; $i < $num; $i++)
-        {
+        for ($i = 0; $i < $num; $i++) {
             ($first, $last, $c) = unpack("n3", substr($dat, $i * 6, 6));
             map {$self->{'val'}{$_} = $c} ($first .. $last);
             $self->{'max'} = $c if ($c > $self->{'max'});
@@ -137,29 +130,24 @@ the output string is returned rather than being output to a filehandle.
 
 =cut
 
-sub out
-{
+sub out {
     my ($self, $fh, $state) = @_;
     my ($g, $eff, $grp, $out);
     my ($shipout) = ($state ? sub {$out .= $_[0];} : sub {$fh->print($_[0]);});
     my (@gids) = sort {$a <=> $b} keys %{$self->{'val'}};
 
-    if ($self->{'cover'})
-    { $self->sort() unless ($self->{'dontsort'} or $dontsort); }
-    else
-    { @gids = grep {$self->{'val'}{$_} > 0} @gids;}		# class value=0 is not explicitly coded in class table
+    if ($self->{'cover'}) { $self->sort() unless ($self->{'dontsort'} or $dontsort); }
+    else { @gids = grep {$self->{'val'}{$_} > 0} @gids;}		# class value=0 is not explicitly coded in class table
 
     $fmt = 1; $grp = 1; $eff = 0;
-    for ($i = 1; $i <= $#gids; $i++)
-    {
-        if ($self->{'val'}{$gids[$i]} < $self->{'val'}{$gids[$i-1]} && $self->{'cover'})
-        {
+    for ($i = 1; $i <= $#gids; $i++) {
+        if ($self->{'val'}{$gids[$i]} < $self->{'val'}{$gids[$i-1]} && $self->{'cover'}) {
             $fmt = 2;
             last;
-        } elsif ($gids[$i] == $gids[$i-1] + 1 && ($self->{'cover'} || $self->{'val'}{$gids[$i]} == $self->{'val'}{$gids[$i-1]}))
-        { $eff++; }
-        else
-        {
+        }
+        elsif ($gids[$i] == $gids[$i-1] + 1 && ($self->{'cover'}
+        	|| $self->{'val'}{$gids[$i]} == $self->{'val'}{$gids[$i-1]})) { $eff++; }
+        else {
             $grp++;
             $eff += $gids[$i] - $gids[$i-1] if (!$self->{'cover'});
         }
@@ -168,37 +156,32 @@ sub out
     { $fmt = 2 if ($eff / $grp > 3 || scalar (@gids) == 0); }
 #    else
 #    { $fmt = 2 if ($grp > 1); }
-    
-    if ($fmt == 1 && $self->{'cover'})
-    {
+
+    if ($fmt == 1 && $self->{'cover'}) {
         my ($last) = 0;
         &$shipout(pack('n2', 1, scalar @gids));
         &$shipout(pack('n*', @gids));
-    } elsif ($fmt == 1)
-    {
+    }
+    elsif ($fmt == 1) {
         my ($last) = $gids[0];
         &$shipout(pack("n3", 1, $last, $gids[-1] - $last + 1));
-        foreach $g (@gids)
-        {
+        for $g (@gids) {
             if ($g > $last + 1)
             { &$shipout(pack('n*', (0) x ($g - $last - 1))); }
             &$shipout(pack('n', $self->{'val'}{$g}));
             $last = $g;
         }
-    } else
-    {
+    } else {
         my ($start, $end, $ind, $numloc, $endloc, $num);
         &$shipout(pack("n2", 2, 0));
         $numloc = $fh->tell() - 2 unless $state;
 
         $start = 0; $end = 0; $num = 0;
-        while ($end < $#gids)
-        {
+        while ($end < $#gids) {
             if ($gids[$end + 1] == $gids[$end] + 1
                 && $self->{'val'}{$gids[$end + 1]}
                         == $self->{'val'}{$gids[$end]}
-                           + ($self->{'cover'} ? 1 : 0))
-            {
+                           + ($self->{'cover'} ? 1 : 0)) {
                 $end++;
                 next;
             }
@@ -209,16 +192,13 @@ sub out
             $end++;
             $num++;
         }
-        if (scalar(@gids))
-        {
+        if (scalar(@gids)) {
 	        &$shipout(pack("n3", $gids[$start], $gids[$end],
 	                $self->{'val'}{$gids[$start]}));
 	        $num++;
 	    }
-        if ($state)
-        { substr($out, 2, 2) = pack('n', $num); }
-        else
-        {
+        if ($state) { substr($out, 2, 2) = pack('n', $num); }
+        else {
             $endloc = $fh->tell();
             $fh->seek($numloc, 0);
             $fh->print(pack("n", $num));
@@ -231,23 +211,20 @@ sub out
 
 =head2 $c->add($glyphid[, $class])
 
-Adds a glyph id to the coverage or class table. 
+Adds a glyph id to the coverage or class table.
 Returns the index or class number of the glyphid added.
 
 =cut
 
-sub add
-{
+sub add {
     my ($self, $gid, $class) = @_;
-    
+
     return $self->{'val'}{$gid} if (defined $self->{'val'}{$gid});
-    if ($self->{'cover'})
-    {
+    if ($self->{'cover'}) {
         $self->{'val'}{$gid} = $self->{'count'};
         return $self->{'count'}++;
     }
-    else
-    {
+    else {
         $self->{'val'}{$gid} = $class || '0';
         $self->{'max'} = $class if ($class > $self->{'max'});
         return $class;
@@ -261,30 +238,26 @@ Returns a vector of all the glyph ids covered by this coverage table or class
 
 =cut
 
-sub signature
-{
+sub signature {
     my ($self) = @_;
     my ($vec, $range, $size);
 
-if (0)
-{
-    if ($self->{'cover'})
-    { $range = 1; $size = 1; }
-    else
-    {
+  if (0) {
+    if ($self->{'cover'}) { $range = 1; $size = 1; }
+    else {
         $range = $self->{'max'};
         $size = 1;
-        while ($range > 1)
-        {
+        while ($range > 1) {
             $size = $size << 1;
             $range = $range >> 1;
         }
         $range = $self->{'max'} + 1;
     }
-    foreach (keys %{$self->{'val'}})
-    { vec($vec, $_, $size) = $self->{'val'}{$_} > $range ? $range : $self->{'val'}{$_}; }
+    for (keys %{$self->{'val'}}) {
+    	vec($vec, $_, $size) = $self->{'val'}{$_} > $range ? $range : $self->{'val'}{$_};
+    }
     length($vec) . ":" . $vec;
-}
+  }
     $vec = join(";", map{"$_,$self->{'val'}{$_}"} sort { $a <=> $b} keys %{$self->{'val'}});
 }
 
@@ -295,13 +268,11 @@ Returns a map such that $map[$new_index]=$old_index.
 
 =cut
 
-sub sort
-{
+sub sort {
     my ($self) = @_;
     my (@res, $i);
 
-    foreach (sort {$a <=> $b} keys %{$self->{'val'}})
-    {
+    for (sort {$a <=> $b} keys %{$self->{'val'}}) {
         push(@res, $self->{'val'}{$_});
         $self->{'val'}{$_} = $i++;
     }
@@ -314,35 +285,32 @@ Outputs this coverage/class in XML
 
 =cut
 
-sub out_xml
-{
+sub out_xml {
     my ($self, $context, $depth) = @_;
     my ($fh) = $context->{'fh'};
 
     $fh->print("$depth<" . ($self->{'cover'} ? 'coverage' : 'class') . ">\n");
-    foreach $gid (sort {$a <=> $b} keys %{$self->{'val'}})
-    {
+    for $gid (sort {$a <=> $b} keys %{$self->{'val'}}) {
         $fh->printf("$depth$context->{'indent'}<gref glyph='%s' val='%s'/>\n", $gid, $self->{'val'}{$gid});
     }
     $fh->print("$depth</" . ($self->{'cover'} ? 'coverage' : 'class') . ">\n");
     $self;
 }
 
-sub release
-{ }
+sub release { }
 
 1;
 
 =head1 AUTHOR
 
-Martin Hosken L<http://scripts.sil.org/FontUtils>. 
+Martin Hosken L<http://scripts.sil.org/FontUtils>.
 
 
 =head1 LICENSING
 
-Copyright (c) 1998-2016, SIL International (http://www.sil.org) 
+Copyright (c) 1998-2016, SIL International (http://www.sil.org)
 
-This module is released under the terms of the Artistic License 2.0. 
+This module is released under the terms of the Artistic License 2.0.
 For details, see the full text of the license in the file LICENSE.
 
 

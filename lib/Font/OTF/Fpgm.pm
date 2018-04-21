@@ -1,8 +1,8 @@
-package Font::TTF::Fpgm;
+package Font::OTF::Fpgm;
 
 =head1 NAME
 
-Font::TTF::Fpgm - Font program in a TrueType font. Called when a font is loaded
+Font::OTF::Fpgm - Font program in a TrueType font. Called when a font is loaded
 
 =head1 DESCRIPTION
 
@@ -14,7 +14,7 @@ for fpgm type information for those processes brave enough to address hinting.
 use strict;
 use vars qw(@ISA $VERSION);
 
-@ISA = qw(Font::TTF::Table);
+@ISA = qw(Font::OTF::Table);
 
 $VERSION = 0.0001;
 
@@ -25,8 +25,7 @@ copy. Nothing more is done with it.
 
 =cut
 
-sub read
-{
+sub read {
     $_[0]->read_dat;
     $_[0]->{' read'} = 1;
 }
@@ -37,14 +36,13 @@ Outputs Fpgm program as XML
 
 =cut
 
-sub out_xml
-{
+sub out_xml {
     my ($self, $context, $depth) = @_;
     my ($fh) = $context->{'fh'};
     my ($dat);
 
     $self->read;
-    $dat = Font::TTF::Utils::XML_binhint($self->{' dat'});
+    $dat = Font::OTF::Utils::XML_binhint($self->{' dat'});
     $dat =~ s/\n(?!$)/\n$depth$context->{'indent'}/omg;
     $fh->print("$depth<code>\n");
     $fh->print("$depth$context->{'indent'}$dat");
@@ -59,17 +57,15 @@ Parse all that hinting code
 
 =cut
 
-sub XML_end
-{
+sub XML_end {
     my ($self) = shift;
     my ($context, $tag, %attrs) = @_;
 
-    if ($tag eq 'code')
-    {
-        $self->{' dat'} = Font::TTF::Utils::XML_hintbin($context->{'text'});
+    if ($tag eq 'code') {
+        $self->{' dat'} = Font::OTF::Utils::XML_hintbin($context->{'text'});
         return $context;
-    } else
-    { return $self->SUPER::XML_end(@_); }
+    }
+    else { return $self->SUPER::XML_end(@_); }
 }
 
 1;
@@ -80,14 +76,14 @@ None known
 
 =head1 AUTHOR
 
-Martin Hosken L<http://scripts.sil.org/FontUtils>. 
+Martin Hosken L<http://scripts.sil.org/FontUtils>.
 
 
 =head1 LICENSING
 
-Copyright (c) 1998-2016, SIL International (http://www.sil.org) 
+Copyright (c) 1998-2016, SIL International (http://www.sil.org)
 
-This module is released under the terms of the Artistic License 2.0. 
+This module is released under the terms of the Artistic License 2.0.
 For details, see the full text of the license in the file LICENSE.
 
 

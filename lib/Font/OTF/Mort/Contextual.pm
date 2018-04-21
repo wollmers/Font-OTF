@@ -1,8 +1,8 @@
-package Font::TTF::Mort::Contextual;
+package Font::OTF::Mort::Contextual;
 
 =head1 NAME
 
-Font::TTF::Mort::Contextual - Contextual Mort subtable for AAT
+Font::OTF::Mort::Contextual - Contextual Mort subtable for AAT
 
 =head1 METHODS
 
@@ -10,14 +10,13 @@ Font::TTF::Mort::Contextual - Contextual Mort subtable for AAT
 
 use strict;
 use vars qw(@ISA);
-use Font::TTF::Utils;
-use Font::TTF::AATutils;
+use Font::OTF::Utils;
+use Font::OTF::AATutils;
 use IO::File;
 
-@ISA = qw(Font::TTF::Mort::Subtable);
+@ISA = qw(Font::OTF::Mort::Subtable);
 
-sub new
-{
+sub new {
     my ($class, $direction, $orientation, $subFeatureFlags) = @_;
     my ($self) = {
                     'direction'            => $direction,
@@ -35,11 +34,10 @@ Reads the table into memory
 
 =cut
 
-sub read
-{
+sub read {
     my ($self, $fh) = @_;
     my ($dat);
-    
+
     my $stateTableStart = $fh->tell();
     my ($classes, $states, $entries) = AAT_read_state_table($fh, 2);
 
@@ -48,17 +46,17 @@ sub read
     my ($stateSize, $classTable, $stateArray, $entryTable, $mappingTables) = unpack("nnnnn", $dat);
     my $limits = [$classTable, $stateArray, $entryTable, $mappingTables, $self->{'length'} - 8];
 
-    foreach (@$entries) {
+    for (@$entries) {
         my $actions = $_->{'actions'};
-        foreach (@$actions) {
+        for (@$actions) {
             $_ = $_ ? $_ - ($mappingTables / 2) : undef;
         }
     }
-    
+
     $self->{'classes'} = $classes;
     $self->{'states'} = $states;
     $self->{'mappings'} = [unpack("n*", AAT_read_subtable($fh, $stateTableStart, $mappingTables, $limits))];
-            
+
     $self;
 }
 
@@ -66,29 +64,28 @@ sub read
 
 =cut
 
-sub pack_sub
-{
+sub pack_sub {
     my ($self) = @_;
-    
+
     my ($dat) = pack("nnnnn", (0) x 5);    # placeholders for stateSize, classTable, stateArray, entryTable, mappingTables
-    
+
     my $classTable = length($dat);
     my $classes = $self->{'classes'};
     $dat .= AAT_pack_classes($classes);
-    
+
     my $stateArray = length($dat);
     my $states = $self->{'states'};
-    my ($dat1, $stateSize, $entries) = AAT_pack_states($classes, $stateArray, $states, 
+    my ($dat1, $stateSize, $entries) = AAT_pack_states($classes, $stateArray, $states,
             sub {
                 my $actions = $_->{'actions'};
                 ( $_->{'flags'}, @$actions )
             }
         );
     $dat .= $dat1;
-    
+
     my $entryTable = length($dat);
     my $offset = ($entryTable + 8 * @$entries) / 2;
-    foreach (@$entries) {
+    for (@$entries) {
         my ($nextState, $flags, @parts) = split /,/;
         $dat .= pack("nnnn", $nextState, $flags, map { $_ eq "" ? 0 : $_ + $offset } @parts);
     }
@@ -96,10 +93,10 @@ sub pack_sub
     my $mappingTables = length($dat);
     my $mappings = $self->{'mappings'};
     $dat .= pack("n*", @$mappings);
-    
+
     $dat1 = pack("nnnnn", $stateSize, $classTable, $stateArray, $entryTable, $mappingTables);
     substr($dat, 0, length($dat1)) = $dat1;
-    
+
     return $dat;
 }
 
@@ -109,22 +106,21 @@ Prints a human-readable representation of the table
 
 =cut
 
-sub print
-{
+sub print {
     my ($self, $fh) = @_;
-    
+
     my $post = $self->post();
-    
+
     $fh = 'STDOUT' unless defined $fh;
 
     $self->print_classes($fh);
-    
+
     $fh->print("\n");
     my $states = $self->{'states'};
-    foreach (0 .. $#$states) {
+    for (0 .. $#$states) {
         $fh->printf("\t\tState %d:", $_);
         my $state = $states->[$_];
-        foreach (@$state) {
+        for (@$state) {
             my $flags;
             $flags .= "!" if ($_->{'flags'} & 0x4000);
             $flags .= "*" if ($_->{'flags'} & 0x8000);
@@ -136,7 +132,7 @@ sub print
 
     $fh->print("\n");
     my $mappings = $self->{'mappings'};
-    foreach (0 .. $#$mappings) {
+    for (0 .. $#$mappings) {
         $fh->printf("\t\tMapping %d: %d [%s]\n", $_, $mappings->[$_], $post->{'VAL'}[$mappings->[$_]]);
     }
 }
@@ -149,14 +145,14 @@ None known
 
 =head1 AUTHOR
 
-Jonathan Kew L<http://scripts.sil.org/FontUtils>. 
+Jonathan Kew L<http://scripts.sil.org/FontUtils>.
 
 
 =head1 LICENSING
 
-Copyright (c) 1998-2016, SIL International (http://www.sil.org) 
+Copyright (c) 1998-2016, SIL International (http://www.sil.org)
 
-This module is released under the terms of the Artistic License 2.0. 
+This module is released under the terms of the Artistic License 2.0.
 For details, see the full text of the license in the file LICENSE.
 
 

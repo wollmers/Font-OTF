@@ -1,8 +1,8 @@
-package Font::TTF::Glyf;
+package Font::OTF::Glyf;
 
 =head1 NAME
 
-Font::TTF::Glyf - The Glyf data table
+Font::OTF::Glyf - The Glyf data table
 
 =head1 DESCRIPTION
 
@@ -24,7 +24,7 @@ This class is used when writing the glyphs though.
 
 use strict;
 use vars qw(@ISA);
-@ISA = qw(Font::TTF::Table);
+@ISA = qw(Font::OTF::Table);
 
 =head2 $t->read
 
@@ -32,10 +32,9 @@ Reads the C<loca> table instead!
 
 =cut
 
-sub read
-{
+sub read {
     my ($self) = @_;
-    
+
     $self->{' PARENT'}{'loca'}->read;
     $self->{' read'} = 1;
     $self;
@@ -43,11 +42,10 @@ sub read
 
 # Internal function called by loca -- decompresses WOFF data if needed.
 
-sub _read
-{
+sub _read {
 	my ($self) = @_;
     $self->SUPER::read or return $self;
-	
+
 	# Nothing else to do
 	$self;
 }
@@ -61,8 +59,7 @@ output location for each one.
 
 # ' match for syntax coloring
 
-sub out
-{
+sub out {
     my ($self, $fh) = @_;
     my ($i, $loca, $offset, $numGlyphs);
 
@@ -72,8 +69,7 @@ sub out
     $numGlyphs = $self->{' PARENT'}{'maxp'}{'numGlyphs'};
 
     $offset = 0;
-    for ($i = 0; $i < $numGlyphs; $i++)
-    {
+    for ($i = 0; $i < $numGlyphs; $i++) {
         next unless defined $loca->[$i];
         $loca->[$i]->update;
         $loca->[$i]{' OUTLOC'} = $offset;
@@ -91,17 +87,15 @@ Outputs all the glyphs in the glyph table just where they are supposed to be out
 
 =cut
 
-sub out_xml
-{
+sub out_xml {
     my ($self, $context, $depth) = @_;
     my ($fh) = $context->{'fh'};
     my ($loca, $i, $numGlyphs);
 
     $loca = $self->{' PARENT'}{'loca'}{'glyphs'};
     $numGlyphs = $self->{' PARENT'}{'maxp'}{'numGlyphs'};
-    
-    for ($i = 0; $i < $numGlyphs; $i++)
-    {
+
+    for ($i = 0; $i < $numGlyphs; $i++) {
         $context->{'gid'} = $i;
         $loca->[$i]->out_xml($context, $depth) if (defined $loca->[$i]);
     }
@@ -116,14 +110,12 @@ Pass control to glyphs as they occur
 
 =cut
 
-sub XML_start
-{
+sub XML_start {
     my ($self) = shift;
     my ($context, $tag, %attrs) = @_;
 
-    if ($tag eq 'glyph')
-    {
-        $context->{'tree'}[-1] = Font::TTF::Glyph->new(read => 2, PARENT => $self->{' PARENT'});
+    if ($tag eq 'glyph') {
+        $context->{'tree'}[-1] = Font::OTF::Glyph->new(read => 2, PARENT => $self->{' PARENT'});
         $context->{'receiver'} = $context->{'tree'}[-1];
     }
 }
@@ -135,24 +127,21 @@ Collect up glyphs and put them into the loca table
 
 =cut
 
-sub XML_end
-{
+sub XML_end {
     my ($self) = shift;
     my ($context, $tag, %attrs) = @_;
 
-    if ($tag eq 'glyph')
-    {
-        unless (defined $context->{'glyphs'})
-        {
-            if (defined $self->{' PARENT'}{'loca'})
-            { $context->{'glyphs'} = $self->{' PARENT'}{'loca'}{'glyphs'}; }
-            else
-            { $context->{'glyphs'} = []; }
+    if ($tag eq 'glyph') {
+        unless (defined $context->{'glyphs'}) {
+            if (defined $self->{' PARENT'}{'loca'}) {
+            	$context->{'glyphs'} = $self->{' PARENT'}{'loca'}{'glyphs'};
+            }
+            else { $context->{'glyphs'} = []; }
         }
         $context->{'glyphs'}[$attrs{'gid'}] = $context->{'tree'}[-1];
         return $context;
-    } else
-    { return $self->SUPER::XML_end(@_); }
+    }
+    else { return $self->SUPER::XML_end(@_); }
 }
 
 1;
@@ -163,14 +152,14 @@ None known
 
 =head1 AUTHOR
 
-Martin Hosken L<http://scripts.sil.org/FontUtils>. 
+Martin Hosken L<http://scripts.sil.org/FontUtils>.
 
 
 =head1 LICENSING
 
-Copyright (c) 1998-2016, SIL International (http://www.sil.org) 
+Copyright (c) 1998-2016, SIL International (http://www.sil.org)
 
-This module is released under the terms of the Artistic License 2.0. 
+This module is released under the terms of the Artistic License 2.0.
 For details, see the full text of the license in the file LICENSE.
 
 

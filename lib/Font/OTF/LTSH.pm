@@ -1,8 +1,8 @@
-package Font::TTF::LTSH;
+package Font::OTF::LTSH;
 
 =head1 NAME
 
-Font::TTF::LTSH - Linear Threshold table
+Font::OTF::LTSH - Linear Threshold table
 
 =head1 DESCRIPTION
 
@@ -26,9 +26,9 @@ An array of ppem values. One value per glyph
 
 use strict;
 use vars qw(@ISA);
-use Font::TTF::Table;
+use Font::OTF::Table;
 
-@ISA = qw(Font::TTF::Table);
+@ISA = qw(Font::OTF::Table);
 
 =head2 $t->read
 
@@ -36,8 +36,7 @@ Reads the table
 
 =cut
 
-sub read
-{
+sub read {
     my ($self) = @_;
     $self->SUPER::read or return $self;
 
@@ -60,8 +59,7 @@ Outputs the LTSH to the given fh.
 
 =cut
 
-sub out
-{
+sub out {
     my ($self, $fh) = @_;
     my ($numg) = $self->{' PARENT'}{'maxp'}{'numGlyphs'};
 
@@ -71,7 +69,7 @@ sub out
     $fh->print(pack("C$numg", @{$self->{'glyphs'}}));
     $self;
 }
-    
+
 =head2 $t->minsize()
 
 Returns the minimum size this table can be. If it is smaller than this, then the table
@@ -79,8 +77,7 @@ must be bad and should be deleted or whatever.
 
 =cut
 
-sub minsize
-{
+sub minsize {
     return 4;
 }
 
@@ -93,14 +90,14 @@ None known
 
 =head1 AUTHOR
 
-Martin Hosken L<http://scripts.sil.org/FontUtils>. 
+Martin Hosken L<http://scripts.sil.org/FontUtils>.
 
 
 =head1 LICENSING
 
-Copyright (c) 1998-2016, SIL International (http://www.sil.org) 
+Copyright (c) 1998-2016, SIL International (http://www.sil.org)
 
-This module is released under the terms of the Artistic License 2.0. 
+This module is released under the terms of the Artistic License 2.0.
 For details, see the full text of the license in the file LICENSE.
 
 

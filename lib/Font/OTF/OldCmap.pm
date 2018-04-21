@@ -1,15 +1,15 @@
-package Font::TTF::OldCmap;
+package Font::OTF::OldCmap;
 
 =head1 NAME
 
-Font::TTF::OldCmap - Character map table
+Font::OTF::OldCmap - Character map table
 
 This module is deprecated
 
 =head1 DESCRIPTION
 
 Looks after the character map. The primary structure used for handling a cmap
-is the L<Font::TTF::Segarr> which handles the segmented arrays of format 4 tables,
+is the L<Font::OTF::Segarr> which handles the segmented arrays of format 4 tables,
 and in a simpler form for format 0 tables.
 
 Due to the complexity of working with segmented arrays, most of the handling of
@@ -17,7 +17,7 @@ such arrays is via methods rather than via instance variables.
 
 One important feature of a format 4 table is that it always contains a segment
 with a final address of 0xFFFF. If you are creating a table from scratch this is
-important (although L<Font::TTF::Segarr> can work quite happily without it).
+important (although L<Font::OTF::Segarr> can work quite happily without it).
 
 
 =head1 INSTANCE VARIABLES
@@ -60,7 +60,7 @@ Gives the version (or language) information for this subtable
 
 =item val
 
-This points to a L<Font::TTF::Segarr> which contains the content of the particular
+This points to a L<Font::OTF::Segarr> which contains the content of the particular
 subtable.
 
 =back
@@ -71,10 +71,10 @@ subtable.
 
 use strict;
 use vars qw(@ISA);
-require Font::TTF::Table;
-require Font::TTF::Segarr;
+require Font::OTF::Table;
+require Font::OTF::Segarr;
 
-@ISA = qw(Font::TTF::Table);
+@ISA = qw(Font::OTF::Table);
 
 
 =head2 $t->read
@@ -86,8 +86,7 @@ Format 2 subtables are not read at all.
 
 =cut
 
-sub read
-{
+sub read {
     my ($self) = @_;
     $self->SUPER::read or return $self;
 
@@ -98,16 +97,14 @@ sub read
     $fh->read($dat, 4);
     $self->{'Num'} = unpack("x2n", $dat);
     $self->{'Tables'} = [];
-    for ($i = 0; $i < $self->{'Num'}; $i++)
-    {
+    for ($i = 0; $i < $self->{'Num'}; $i++) {
         $s = {};
         $fh->read($dat, 8);
         ($s->{'Platform'}, $s->{'Encoding'}, $s->{'LOC'}) = (unpack("nnN", $dat));
         $s->{'LOC'} += $self->{' OFFSET'};
         push(@{$self->{'Tables'}}, $s);
     }
-    for ($i = 0; $i < $self->{'Num'}; $i++)
-    {
+    for ($i = 0; $i < $self->{'Num'}; $i++) {
         $s = $self->{'Tables'}[$i];
         $fh->seek($s->{'LOC'}, 0);
         $fh->read($dat, 6);
@@ -115,49 +112,46 @@ sub read
 
         $s->{'Format'} = $form;
         $s->{'Ver'} = $ver;
-        if ($form == 0)
-        {
-            $s->{'val'} = Font::TTF::Segarr->new;
+        if ($form == 0) {
+            $s->{'val'} = Font::OTF::Segarr->new;
             $fh->read($dat, 256);
             $s->{'val'}->fastadd_segment(0, 2, unpack("C*", $dat));
             $s->{'Start'} = 0;
             $s->{'Num'} = 256;
-        } elsif ($form == 6)
-        {
+        }
+        elsif ($form == 6) {
             my ($start, $ecount);
-            
+
             $fh->read($dat, 4);
             ($start, $ecount) = unpack("n2", $dat);
             $fh->read($dat, $ecount << 1);
-            $s->{'val'} = Font::TTF::Segarr->new;
+            $s->{'val'} = Font::OTF::Segarr->new;
             $s->{'val'}->fastadd_segment($start, 2, unpack("n*", $dat));
             $s->{'Start'} = $start;
             $s->{'Num'} = $ecount;
-        } elsif ($form == 2)
-        {
-# no idea what to do here yet
-        } elsif ($form == 4)
-        {
+        }
+        elsif ($form == 2) {
+		# no idea what to do here yet
+        }
+        elsif ($form == 4) {
             $fh->read($dat, 8);
             $num = unpack("n", $dat);
             $num >>= 1;
             $fh->read($dat, $len - 14);
-            $s->{'val'} = Font::TTF::Segarr->new;
-            for ($j = 0; $j < $num; $j++)
-            {
+            $s->{'val'} = Font::OTF::Segarr->new;
+            for ($j = 0; $j < $num; $j++) {
                 $end = unpack("n", substr($dat, $j << 1, 2));
                 $start = unpack("n", substr($dat, ($j << 1) + ($num << 1) + 2, 2));
                 $delta = unpack("n", substr($dat, ($j << 1) + ($num << 2) + 2, 2));
                 $delta -= 65536 if $delta > 32767;
                 $range = unpack("n", substr($dat, ($j << 1) + $num * 6 + 2, 2));
                 @ids = ();
-                for ($k = $start; $k <= $end; $k++)
-                {
-                    if ($range == 0)
-                    { $id = $k + $delta; }
-                    else
-                    { $id = unpack("n", substr($dat, ($j << 1) + $num * 6 +
-                                        2 + ($k - $start) * 2 + $range, 2)) + $delta; }
+                for ($k = $start; $k <= $end; $k++) {
+                    if ($range == 0) { $id = $k + $delta; }
+                    else {
+                    	$id = unpack("n", substr($dat, ($j << 1) + $num * 6 +
+                                        2 + ($k - $start) * 2 + $range, 2)) + $delta;
+                    }
                     $id -= 65536 if $id > 65536;
                     push (@ids, $id);
                 }
@@ -179,8 +173,7 @@ table and looks up the appropriate glyph number from it.
 
 =cut
 
-sub ms_lookup
-{
+sub ms_lookup {
     my ($self, $uni) = @_;
 
     $self->find_ms || return undef unless (defined $self->{' mstable'});
@@ -195,15 +188,13 @@ to it if found. Returns the table it finds.
 
 =cut
 
-sub find_ms
-{
+sub find_ms {
     my ($self) = @_;
     my ($i, $s, $alt);
 
     return $self->{' mstable'} if defined $self->{' mstable'};
     $self->read;
-    for ($i = 0; $i < $self->{'Num'}; $i++)
-    {
+    for ($i = 0; $i < $self->{'Num'}; $i++) {
         $s = $self->{'Tables'}[$i];
         if ($s->{'Platform'} == 3)
         {
@@ -223,8 +214,7 @@ just copies from input file to output
 
 =cut
 
-sub out
-{
+sub out {
     my ($self, $fh) = @_;
     my ($loc, $s, $i, $base_loc, $j);
 
@@ -233,48 +223,41 @@ sub out
     $base_loc = $fh->tell();
     $fh->print(pack("n2", 0, $self->{'Num'}));
 
-    for ($i = 0; $i < $self->{'Num'}; $i++)
-    { $fh->print(pack("nnN", $self->{'Tables'}[$i]{'Platform'}, $self->{'Tables'}[$i]{'Encoding'}, 0)); }
-    
-    for ($i = 0; $i < $self->{'Num'}; $i++)
-    {
+    for ($i = 0; $i < $self->{'Num'}; $i++) {
+    	$fh->print(pack("nnN", $self->{'Tables'}[$i]{'Platform'}, $self->{'Tables'}[$i]{'Encoding'}, 0));
+    }
+
+    for ($i = 0; $i < $self->{'Num'}; $i++) {
         $s = $self->{'Tables'}[$i];
         $s->{'val'}->tidy;
         $s->{' outloc'} = $fh->tell();
         $fh->print(pack("n3", $s->{'Format'}, 0, $s->{'Ver'}));       # come back for length
-        if ($s->{'Format'} == 0)
-        {
+        if ($s->{'Format'} == 0) {
             $fh->print(pack("C256", $s->{'val'}->at(0, 256)));
-        } elsif ($s->{'Format'} == 6)
-        {
+        }
+        elsif ($s->{'Format'} == 6) {
             $fh->print(pack("n2", $s->{'Start'}, $s->{'Num'}));
             $fh->print(pack("n*", $s->{'val'}->at($s->{'Start'}, $s->{'Num'})));
-        } elsif ($s->{'Format'} == 2)
-        {
-        } elsif ($s->{'Format'} == 4)
-        {
+        }
+        elsif ($s->{'Format'} == 2) { }
+        elsif ($s->{'Format'} == 4) {
             my ($num, $sRange, $eSel);
             my (@deltas, $delta, @range, $flat, $k, $segs, $count);
 
             $num = $#{$s->{'val'}} + 1;
             $segs = $s->{'val'};
-            for ($sRange = 1, $eSel = 0; $sRange <= $num; $eSel++)
-            { $sRange <<= 1;}
+            for ($sRange = 1, $eSel = 0; $sRange <= $num; $eSel++) { $sRange <<= 1;}
             $eSel--;
             $fh->print(pack("n4", $num * 2, $sRange, $eSel, ($num * 2) - $sRange));
             $fh->print(pack("n*", map {$_->{'START'} + $_->{'LEN'} - 1} @$segs));
             $fh->print(pack("n", 0));
             $fh->print(pack("n*", map {$_->{'START'}} @$segs));
 
-            for ($j = 0; $j < $num; $j++)
-            {
+            for ($j = 0; $j < $num; $j++) {
                 $delta = $segs->[$j]{'VAL'}[0]; $flat = 1;
-                for ($k = 1; $k < $segs->[$j]{'LEN'}; $k++)
-                {
-                    if ($segs->[$j]{'VAL'}[$k] == 0)
-                    { $flat = 0; }
-                    if ($delta + $k != $segs->[$j]{'VAL'}[$k])
-                    {
+                for ($k = 1; $k < $segs->[$j]{'LEN'}; $k++) {
+                    if ($segs->[$j]{'VAL'}[$k] == 0) { $flat = 0; }
+                    if ($delta + $k != $segs->[$j]{'VAL'}[$k]) {
                         $delta = 0;
                         last;
                     }
@@ -285,13 +268,11 @@ sub out
             $fh->print(pack("n*", @deltas));
 
             $count = 0;
-            for ($j = 0; $j < $num; $j++)
-            {
+            for ($j = 0; $j < $num; $j++) {
                 $delta = $deltas[$j];
                 if ($delta != 0 && $range[$j] == 1)
                 { $range[$j] = 0; }
-                else
-                {
+                else {
                     $range[$j] = ($count + $num - $j) << 1;
                     $count += $segs->[$j]{'LEN'};
                 }
@@ -299,8 +280,7 @@ sub out
 
             $fh->print(pack("n*", @range));
 
-            for ($j = 0; $j < $num; $j++)
-            {
+            for ($j = 0; $j < $num; $j++) {
                 next if ($range[$j] == 0);
                 for ($k = 0; $k < $segs->[$j]{'LEN'}; $k++)
                 { $fh->print(pack("n", $segs->[$j]{'VAL'}[$k])); }
@@ -325,14 +305,12 @@ cmap. I.e. given a glyph gives the Unicode value for it.
 
 =cut
 
-sub reverse
-{
+sub reverse {
     my ($self, $tnum) = @_;
     my ($table) = defined $tnum ? $self->{'Tables'}[$tnum] : $self->find_ms;
     my (@res, $i, $s, $first);
 
-    foreach $s (@{$table->{'val'}})
-    {
+    for $s (@{$table->{'val'}}) {
         $first = $s->{'START'};
         map {$res[$_] = $first unless $res[$_]; $first++;} @{$s->{'VAL'}};
     }
@@ -353,14 +331,14 @@ No support for format 2 tables (MBCS)
 
 =head1 AUTHOR
 
-Martin Hosken L<http://scripts.sil.org/FontUtils>. 
+Martin Hosken L<http://scripts.sil.org/FontUtils>.
 
 
 =head1 LICENSING
 
-Copyright (c) 1998-2016, SIL International (http://www.sil.org) 
+Copyright (c) 1998-2016, SIL International (http://www.sil.org)
 
-This module is released under the terms of the Artistic License 2.0. 
+This module is released under the terms of the Artistic License 2.0.
 For details, see the full text of the license in the file LICENSE.
 
 

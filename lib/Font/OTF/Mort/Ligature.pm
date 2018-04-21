@@ -1,8 +1,8 @@
-package Font::TTF::Mort::Ligature;
+package Font::OTF::Mort::Ligature;
 
 =head1 NAME
 
-Font::TTF::Mort::Ligature - Ligature Mort subtable for AAT
+Font::OTF::Mort::Ligature - Ligature Mort subtable for AAT
 
 =head1 METHODS
 
@@ -10,14 +10,13 @@ Font::TTF::Mort::Ligature - Ligature Mort subtable for AAT
 
 use strict;
 use vars qw(@ISA);
-use Font::TTF::Utils;
-use Font::TTF::AATutils;
+use Font::OTF::Utils;
+use Font::OTF::AATutils;
 use IO::File;
 
-@ISA = qw(Font::TTF::Mort::Subtable);
+@ISA = qw(Font::OTF::Mort::Subtable);
 
-sub new
-{
+sub new {
     my ($class, $direction, $orientation, $subFeatureFlags) = @_;
     my ($self) = {
                     'direction'            => $direction,
@@ -35,23 +34,22 @@ Reads the table into memory
 
 =cut
 
-sub read
-{
+sub read {
     my ($self, $fh) = @_;
     my ($dat);
 
     my $stateTableStart = $fh->tell();
     my ($classes, $states, $entries) = AAT_read_state_table($fh, 0);
-    
+
     $fh->seek($stateTableStart, IO::File::SEEK_SET);
     $fh->read($dat, 14);
     my ($stateSize, $classTable, $stateArray, $entryTable,
         $ligActionTable, $componentTable, $ligatureTable) = unpack("nnnnnnn", $dat);
     my $limits = [$classTable, $stateArray, $entryTable, $ligActionTable, $componentTable, $ligatureTable, $self->{'length'} - 8];
-    
+
     my %actions;
     my $actionLists;
-    foreach (@$entries) {
+    for (@$entries) {
         my $offset = $_->{'flags'} & 0x3fff;
         $_->{'flags'} &= ~0x3fff;
         if ($offset != 0) {
@@ -73,21 +71,21 @@ sub read
             $_->{'actions'} = $actions{$offset};
         }
     }
-    
+
     $self->{'componentTable'} = $componentTable;
     my $components = [unpack("n*", AAT_read_subtable($fh, $stateTableStart, $componentTable, $limits))];
-    foreach (@$components) {
+    for (@$components) {
         $_ = ($_ - $ligatureTable) . " +" if $_ >= $ligatureTable;
     }
     $self->{'components'} = $components;
-    
+
     $self->{'ligatureTable'} = $ligatureTable;
     $self->{'ligatures'} = [unpack("n*", AAT_read_subtable($fh, $stateTableStart, $ligatureTable, $limits))];
-    
+
     $self->{'classes'} = $classes;
     $self->{'states'} = $states;
     $self->{'actionLists'} = $actionLists;
-        
+
     $self;
 }
 
@@ -95,32 +93,31 @@ sub read
 
 =cut
 
-sub pack_sub
-{
+sub pack_sub {
     my ($self) = @_;
     my ($dat);
-    
+
     $dat .= pack("nnnnnnn", (0) x 7);    # placeholders for stateSize, classTable, stateArray, entryTable, actionLists, components, ligatures
 
     my $classTable = length($dat);
     my $classes = $self->{'classes'};
     $dat .= AAT_pack_classes($classes);
-    
+
     my $stateArray = length($dat);
     my $states = $self->{'states'};
-    
+
     my ($dat1, $stateSize, $entries) = AAT_pack_states($classes, $stateArray, $states,
             sub {
                 ( $_->{'flags'} & 0xc000, $_->{'actions'} )
             }
         );
     $dat .= $dat1;
-    
+
     my $actionLists = $self->{'actionLists'};
     my %actionListOffset;
     my $actionListDataLength = 0;
     my @actionListEntries;
-    foreach (0 .. $#$entries) {
+    for (0 .. $#$entries) {
         my ($nextState, $flags, $offset) = split(/,/, $entries->[$_]);
         if ($offset eq "") {
             $offset = undef;
@@ -141,18 +138,18 @@ sub pack_sub
     }
     my $entryTable = length($dat);
     my $ligActionLists = ($entryTable + @$entries * 4 + 3) & ~3;
-    foreach (@$entries) {
+    for (@$entries) {
         $_->[2] += $ligActionLists if defined $_->[2];
         $dat .= pack("nn", $_->[0], $_->[1] + $_->[2]);
     }
     $dat .= pack("C*", (0) x ($ligActionLists - $entryTable - @$entries * 4));
-    
+
     die "internal error" unless length($dat) == $ligActionLists;
-    
+
     my $componentTable = length($dat) + $actionListDataLength;
     my $actionList;
-    foreach $actionList (@actionListEntries) {
-        foreach (0 .. $#$actionList) {
+    for $actionList (@actionListEntries) {
+        for (0 .. $#$actionList) {
             my $action = $actionList->[$_];
             my $val = $action->{'component'} + $componentTable / 2;
             $val += 0x40000000 if $val < 0;
@@ -168,10 +165,10 @@ sub pack_sub
     my $components = $self->{'components'};
     my $ligatureTable = $componentTable + @$components * 2;
     $dat .= pack("n*", map { (index($_, '+') >= 0 ? $ligatureTable : 0) + $_ } @$components);
-    
+
     my $ligatures = $self->{'ligatures'};
     $dat .= pack("n*", @$ligatures);
-    
+
     $dat1 = pack("nnnnnnn", $stateSize, $classTable, $stateArray, $entryTable, $ligActionLists, $componentTable, $ligatureTable);
     substr($dat, 0, length($dat1)) = $dat1;
 
@@ -184,22 +181,21 @@ Prints a human-readable representation of the table
 
 =cut
 
-sub print
-{
+sub print {
     my ($self, $fh) = @_;
-    
+
     my $post = $self->post();
-    
+
     $fh = 'STDOUT' unless defined $fh;
 
     $self->print_classes($fh);
-    
+
     $fh->print("\n");
     my $states = $self->{'states'};
-    foreach (0 .. $#$states) {
+    for (0 .. $#$states) {
         $fh->printf("\t\tState %d:", $_);
         my $state = $states->[$_];
-        foreach (@$state) {
+        for (@$state) {
             my $flags;
             $flags .= "!" if ($_->{'flags'} & 0x4000);
             $flags .= "*" if ($_->{'flags'} & 0x8000);
@@ -210,7 +206,7 @@ sub print
 
     $fh->print("\n");
     my $actionLists = $self->{'actionLists'};
-    foreach (0 .. $#$actionLists) {
+    for (0 .. $#$actionLists) {
         $fh->printf("\t\tList %d:\t", $_);
         my $actionList = $actionLists->[$_];
         $fh->printf("%s\n", join(", ", map { ($_->{'component'} . ($_->{'store'} ? "*" : "") ) } @$actionList));
@@ -220,13 +216,13 @@ sub print
 
     $fh->print("\n");
     my $components = $self->{'components'};
-    foreach (0 .. $#$components) {
+    for (0 .. $#$components) {
         $fh->printf("\t\tComponent %d: %s\n", $_, $components->[$_]);
     }
-    
+
     $fh->print("\n");
     my $ligatures = $self->{'ligatures'};
-    foreach (0 .. $#$ligatures) {
+    for (0 .. $#$ligatures) {
         $fh->printf("\t\tLigature %d: %d [%s]\n", $_, $ligatures->[$_], $post->{'VAL'}[$ligatures->[$_]]);
     }
 }
@@ -239,14 +235,14 @@ None known
 
 =head1 AUTHOR
 
-Jonathan Kew L<http://scripts.sil.org/FontUtils>. 
+Jonathan Kew L<http://scripts.sil.org/FontUtils>.
 
 
 =head1 LICENSING
 
-Copyright (c) 1998-2016, SIL International (http://www.sil.org) 
+Copyright (c) 1998-2016, SIL International (http://www.sil.org)
 
-This module is released under the terms of the Artistic License 2.0. 
+This module is released under the terms of the Artistic License 2.0.
 For details, see the full text of the license in the file LICENSE.
 
 

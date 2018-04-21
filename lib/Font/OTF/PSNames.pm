@@ -1,12 +1,12 @@
-package Font::TTF::PSNames;
+package Font::OTF::PSNames;
 
 =head1 NAME
 
-Font::TTF::PSNames - Utilities for Postscript glyph name processing
+Font::OTF::PSNames - Utilities for Postscript glyph name processing
 
 =head1 SYNOPSIS
 
-  use Font::TTF::PSNames qw(parse lookup);
+  use Font::OTF::PSNames qw(parse lookup);
   $name = lookup($uni);
   $uni = parse($name);
 
@@ -20,7 +20,7 @@ require Exporter;
 @ISA = qw( Exporter );
 @EXPORT_OK = qw( parse lookup);
 
-# Adobe Glyph List for New Fonts	
+# Adobe Glyph List for New Fonts
 # from http://partners.adobe.com/asn/tech/type/aglfn13.txt
 
 %names = (
@@ -4361,27 +4361,22 @@ returns C<uniXXXX> names rather than C<afiiNNNNN> or C<SFnnnnnn> names
 
 If C<$noAlt> is true, C<afii> and C<SF> names are returned rather than C<uniXXXX>.
 
-if C<$noUni> is true, returns undef if it would have to resort to C<uniXXXX> or C<uXXXXXX> 
+if C<$noUni> is true, returns undef if it would have to resort to C<uniXXXX> or C<uXXXXXX>
 style names. Essentially this represents a straight lookup in the Adobe-recommended list.
 
 =cut
 
-sub lookup
-{
+sub lookup {
     my ($num, $noalt, $noUni) = @_;
     my ($val) = sprintf("%04X", $num);
 
-    if (defined $names{$val})
-    {
+    if (defined $names{$val}) {
         return $names{$val} if ($noalt || $names{$val} !~ m/^(?:afii|SF)/o);
     }
     return undef if $noUni;
-    if ($num > 0xFFFF)
-    { return "u$val"; }
-    elsif ($num)
-    { return "uni$val"; }
-    else
-    { return ".notdef"; }
+    if ($num > 0xFFFF)  { return "u$val"; }
+    elsif ($num) { return "uni$val"; }
+    else { return ".notdef"; }
 }
 
 =head2 parse ( $glyphname )
@@ -4390,38 +4385,32 @@ Parse an Adobe-conformant glyph name, generating a Unicode codepoint sequence eq
 glyph components, should the name represent a ligature). In scalar context, returns a reference to an
 array of Unicodes (decimal). Array is empty if the glyph name is non-conformant.
 In list context, the first item returned is the same array reference as above. The second item
-is a reference to an array containing the extensions (if any) present on the glyph name. 
+is a reference to an array containing the extensions (if any) present on the glyph name.
 The '.' that precedes each extension is not included.
 
 =cut
 
-sub parse
-{
+sub parse {
 	my ($gname, @USVs, @extensions);
 	($gname, @extensions) = split('\.', $_[0]);
 	# if name originally started with . (e.g., .null) then $gname will now be '' ... need to fix that up:
 	$gname = '.' . shift(@extensions) if $gname eq '';
-	if (defined $gname)
-	{
-		foreach $gname (split('_', $gname))
-		{
-			if ($gname =~ /^u[0-9a-fA-F]{4,6}$/)
-			{
+	if (defined $gname) {
+		for $gname (split('_', $gname)) {
+			if ($gname =~ /^u[0-9a-fA-F]{4,6}$/) {
 				push @USVs, hex(substr($gname, 1));
 			}
-			elsif ($gname =~ /^uni([0-9a-fA-F]{4,4})+$/)
-			{
+			elsif ($gname =~ /^uni([0-9a-fA-F]{4,4})+$/) {
 				push @USVs, map {hex($_)} ($gname =~ /([0-9a-fA-F]{4,4})/g)
 			}
-			elsif (exists $agl{$gname})
-			{
+			elsif (exists $agl{$gname}) {
 				push @USVs, unpack ('U*', $agl{$gname});
 			}
 		}
 	}
 	return \@USVs unless wantarray;
 	my @res = (\@USVs, \@extensions);
-	return @res;	
+	return @res;
 }
 
 #Code used to parse Adobe's agl file and generate text for %agl initialization:
@@ -4429,7 +4418,7 @@ sub parse
 #	chomp;
 #	next if m/^#/;
 #	my ($gname, @nums) = split(/[; ]/);
-#	if ($#nums > 0 or !defined ($Font::TTF::PSNames::names{$nums[0]}) or $Font::TTF::PSNames::names{$nums[0]} ne $gname)
+#	if ($#nums > 0 or !defined ($Font::OTF::PSNames::names{$nums[0]}) or $Font::OTF::PSNames::names{$nums[0]} ne $gname)
 #	{
 #		print "\t'$gname' => \"";
 #		map {print "\\x{$_}" } @nums;
@@ -4441,14 +4430,14 @@ sub parse
 
 =head1 AUTHOR
 
-Martin Hosken L<http://scripts.sil.org/FontUtils>. 
+Martin Hosken L<http://scripts.sil.org/FontUtils>.
 
 
 =head1 LICENSING
 
-Copyright (c) 1998-2016, SIL International (http://www.sil.org) 
+Copyright (c) 1998-2016, SIL International (http://www.sil.org)
 
-This module is released under the terms of the Artistic License 2.0. 
+This module is released under the terms of the Artistic License 2.0.
 For details, see the full text of the license in the file LICENSE.
 
 

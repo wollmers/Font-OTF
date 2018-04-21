@@ -34,7 +34,7 @@ sub read {
     ($self->{'version'}, $numSubtables) = TTF_Unpack("vL", $dat);
 
     my $subtables = [];
-    foreach (1 .. $numSubtables) {
+    for (1 .. $numSubtables) {
         my $subtableStart = $fh->tell();
 
         $fh->read($dat, 8);
@@ -68,7 +68,7 @@ sub out {
     my $subtables = $self->{'subtables'};
     $fh->print(TTF_Pack("vL", $self->{'version'}, scalar @$subtables));
 
-    foreach (@$subtables) {
+    for (@$subtables) {
         $_->out($fh);
     }
 }
@@ -89,7 +89,7 @@ sub print {
     $fh->printf("version %f\n", $self->{'version'});
 
     my $subtables = $self->{'subtables'};
-    foreach (@$subtables) {
+    for (@$subtables) {
         $_->print($fh);
     }
 }
@@ -105,7 +105,7 @@ sub dumpXML {
     $fh->printf("<kern version=\"%f\">\n", $self->{'version'});
 
     my $subtables = $self->{'subtables'};
-    foreach (@$subtables) {
+    for (@$subtables) {
         $fh->printf("<%s", $_->type);
         $fh->printf(" vertical=\"1\"") if $_->{'vertical'};
         $fh->printf(" crossStream=\"1\"") if $_->{'crossStream'};

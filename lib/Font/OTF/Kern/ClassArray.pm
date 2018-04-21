@@ -1,8 +1,8 @@
-package Font::TTF::Kern::ClassArray;
+package Font::OTF::Kern::ClassArray;
 
 =head1 NAME
 
-Font::TTF::Kern::ClassArray - ClassArray Kern Subtable for AAT
+Font::OTF::Kern::ClassArray - ClassArray Kern Subtable for AAT
 
 =head1 METHODS
 
@@ -10,17 +10,16 @@ Font::TTF::Kern::ClassArray - ClassArray Kern Subtable for AAT
 
 use strict;
 use vars qw(@ISA);
-use Font::TTF::Utils;
-use Font::TTF::AATutils;
+use Font::OTF::Utils;
+use Font::OTF::AATutils;
 use IO::File;
 
-@ISA = qw(Font::TTF::Kern::Subtable);
+@ISA = qw(Font::OTF::Kern::Subtable);
 
-sub new
-{
+sub new {
     my ($class) = @_;
     my ($self) = {};
-    
+
     $class = ref($class) || $class;
     bless $self, $class;
 }
@@ -31,10 +30,9 @@ Reads the table into memory
 
 =cut
 
-sub read
-{
+sub read {
     my ($self, $fh) = @_;
- 
+
     my $subtableStart = $fh->tell() - 8;
     my $dat;
     $fh->read($dat, 8);
@@ -45,19 +43,19 @@ sub read
     my ($firstGlyph, $nGlyphs) = unpack("nn", $dat);
     $fh->read($dat, $nGlyphs * 2);
     my $leftClasses = [];
-    foreach (TTF_Unpack("S*", $dat)) {
+    for (TTF_Unpack("S*", $dat)) {
         push @{$leftClasses->[($_ - $array) / $rowWidth]}, $firstGlyph++;
     }
-    
+
     $fh->seek($subtableStart + $rightClassTable, IO::File::SEEK_SET);
     $fh->read($dat, 4);
     ($firstGlyph, $nGlyphs) = unpack("nn", $dat);
     $fh->read($dat, $nGlyphs * 2);
     my $rightClasses = [];
-    foreach (TTF_Unpack("S*", $dat)) {
+    for (TTF_Unpack("S*", $dat)) {
         push @{$rightClasses->[$_ / 2]}, $firstGlyph++;
     }
-    
+
     $fh->seek($subtableStart + $array, IO::File::SEEK_SET);
     $fh->read($dat, $self->{'length'} - $array);
 
@@ -66,14 +64,14 @@ sub read
     while ($offset < length($dat)) {
         push @$kernArray, [ TTF_Unpack("s*", substr($dat, $offset, $rowWidth)) ];
         $offset += $rowWidth;
-    }    
+    }
 
     $self->{'leftClasses'} = $leftClasses;
     $self->{'rightClasses'} = $rightClasses;
     $self->{'kernArray'} = $kernArray;
-    
+
     $fh->seek($subtableStart + $self->{'length'}, IO::File::SEEK_SET);
-    
+
     $self;
 }
 
@@ -83,9 +81,7 @@ Writes the table to a file
 
 =cut
 
-sub out_sub
-{
-}
+sub out_sub { }
 
 =head2 $t->print($fh)
 
@@ -93,37 +89,35 @@ Prints a human-readable representation of the table
 
 =cut
 
-sub print
-{
+sub print {
     my ($self, $fh) = @_;
-    
+
     my $post = $self->post();
-    
+
     $fh = 'STDOUT' unless defined $fh;
 
-    
+
 }
 
-sub dumpXML
-{
+sub dumpXML {
     my ($self, $fh) = @_;
     my $post = $self->post();
-    
+
     $fh = 'STDOUT' unless defined $fh;
     $fh->printf("<leftClasses>\n");
-    $self->dumpClasses($self->{'leftClasses'}, $fh);    
+    $self->dumpClasses($self->{'leftClasses'}, $fh);
     $fh->printf("</leftClasses>\n");
 
     $fh->printf("<rightClasses>\n");
-    $self->dumpClasses($self->{'rightClasses'}, $fh);    
+    $self->dumpClasses($self->{'rightClasses'}, $fh);
     $fh->printf("</rightClasses>\n");
-    
+
     $fh->printf("<kernArray>\n");
     my $kernArray = $self->{'kernArray'};
-    foreach (0 .. $#$kernArray) {
+    for (0 .. $#$kernArray) {
         $fh->printf("<row index=\"%s\">\n", $_);
         my $row = $kernArray->[$_];
-        foreach (0 .. $#$row) {
+        for (0 .. $#$row) {
             $fh->printf("<val index=\"%s\" v=\"%s\"/>\n", $_, $row->[$_]);
         }
         $fh->printf("</row>\n");
@@ -131,10 +125,7 @@ sub dumpXML
     $fh->printf("</kernArray>\n");
 }
 
-sub type
-{
-    return 'kernClassArray';
-}
+sub type { return 'kernClassArray'; }
 
 
 
@@ -146,14 +137,14 @@ None known
 
 =head1 AUTHOR
 
-Jonathan Kew L<http://scripts.sil.org/FontUtils>. 
+Jonathan Kew L<http://scripts.sil.org/FontUtils>.
 
 
 =head1 LICENSING
 
-Copyright (c) 1998-2016, SIL International (http://www.sil.org) 
+Copyright (c) 1998-2016, SIL International (http://www.sil.org)
 
-This module is released under the terms of the Artistic License 2.0. 
+This module is released under the terms of the Artistic License 2.0.
 For details, see the full text of the license in the file LICENSE.
 
 

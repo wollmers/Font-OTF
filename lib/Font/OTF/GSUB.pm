@@ -1,8 +1,8 @@
-package Font::TTF::GSUB;
+package Font::OTF::GSUB;
 
 =head1 NAME
 
-Font::TTF::GSUB - Module support for the GSUB table in conjunction with TTOpen
+Font::OTF::GSUB - Module support for the GSUB table in conjunction with TTOpen
 
 =head1 DESCRIPTION
 
@@ -12,7 +12,7 @@ although I have tried to make life easy for myself when using this!
 
 =head1 INSTANCE VARIABLES
 
-The structure of a GSUB table is the same as that given in L<Font::TTF::Ttopen>.
+The structure of a GSUB table is the same as that given in L<Font::OTF::Ttopen>.
 Here we give some of the semantics specific to GSUB lookups.
 
 =over 4
@@ -94,10 +94,10 @@ table.
 
 use strict;
 use vars qw(@ISA);
-use Font::TTF::Utils;
-use Font::TTF::Ttopen;
+use Font::OTF::Utils;
+use Font::OTF::Ttopen;
 
-@ISA = qw(Font::TTF::Ttopen);
+@ISA = qw(Font::OTF::Ttopen);
 
 =head2 $t->read_sub($fh, $lookup, $index)
 
@@ -106,8 +106,7 @@ lookup number lookup. The file is positioned ready for the read.
 
 =cut
 
-sub read_sub
-{
+sub read_sub {
     my ($self, $fh, $main_lookup, $sindex) = @_;
     my ($type) = $main_lookup->{'TYPE'};
     my ($loc) = $fh->tell();
@@ -115,41 +114,37 @@ sub read_sub
     my ($dat, $s, @subst, $t, $fmt, $cover, $count, $mcount, $scount, $i, $gid);
     my (@srec);
 
-    if ($type == 6)
-    {
+    if ($type == 6) {
         $fh->read($dat, 4);
         ($fmt, $cover) = TTF_Unpack('S2', $dat);
-        if ($fmt < 3)
-        {
+        if ($fmt < 3) {
             $fh->read($dat, 2);
             $count = TTF_Unpack('S', $dat);
         }
-    } else
-    {
+    } else {
         $fh->read($dat, 6);
         ($fmt, $cover, $count) = TTF_Unpack("S3", $dat);
     }
-    unless ($fmt == 3 && ($type == 5 || $type == 6))
-    { $lookup->{'COVERAGE'} = $self->read_cover($cover, $loc, $lookup, $fh, 1); }
+    unless ($fmt == 3 && ($type == 5 || $type == 6)) {
+    	$lookup->{'COVERAGE'} = $self->read_cover($cover, $loc, $lookup, $fh, 1);
+    }
 
     $lookup->{'FORMAT'} = $fmt;
-    if ($type == 1 && $fmt == 1)
-    {
+    if ($type == 1 && $fmt == 1) {
         $count -= 65536 if ($count > 32767);
         $lookup->{'ADJUST'} = $count;
         $lookup->{'ACTION_TYPE'} = 'o';
-    } elsif ($type == 1 && $fmt == 2)
-    {
+    }
+    elsif ($type == 1 && $fmt == 2) {
         $fh->read($dat, $count << 1);
         @subst = TTF_Unpack('S*', $dat);
-        foreach $s (@subst)
+        for $s (@subst)
         { push(@{$lookup->{'RULES'}}, [{'ACTION' => [$s]}]); }
         $lookup->{'ACTION_TYPE'} = 'g';
-    } elsif ($type == 2 || $type == 3)
-    {
+    }
+    elsif ($type == 2 || $type == 3) {
         $fh->read($dat, $count << 1);       # number of offsets
-        foreach $s (TTF_Unpack('S*', $dat))
-        {
+        for $s (TTF_Unpack('S*', $dat)) {
             $fh->seek($loc + $s, 0);
             $fh->read($dat, 2);
             $t = TTF_Unpack('S', $dat);
@@ -157,18 +152,16 @@ sub read_sub
             push(@{$lookup->{'RULES'}}, [{'ACTION' => [TTF_Unpack('S*', $dat)]}]);
         }
         $lookup->{'ACTION_TYPE'} = ($type == 2 ? 'g' : 'a');
-    } elsif ($type == 4)
-    {
+    }
+    elsif ($type == 4) {
         $fh->read($dat, $count << 1);
-        foreach $s (TTF_Unpack('S*', $dat))
-        {
+        for $s (TTF_Unpack('S*', $dat)) {
             @subst = ();
             $fh->seek($loc + $s, 0);
             $fh->read($dat, 2);
             $t = TTF_Unpack('S', $dat);
             $fh->read($dat, $t << 1);
-            foreach $t (TTF_Unpack('S*', $dat))
-            {
+            for $t (TTF_Unpack('S*', $dat)) {
                 $fh->seek($loc + $s + $t, 0);
                 $fh->read($dat, 4);
                 ($gid, $mcount) = TTF_Unpack('S2', $dat);
@@ -179,24 +172,22 @@ sub read_sub
         }
         $lookup->{'ACTION_TYPE'} = 'g';
         $lookup->{'MATCH_TYPE'} = 'g';
-    } elsif ($type == 8)
-    {
+    }
+    elsif ($type == 8) {
         $t = {};
-        unless ($count == 0)
-        {
+        unless ($count == 0) {
             @subst = ();
             $fh->read($dat, $count << 1);
-            foreach $s (TTF_Unpack('S*', $dat))
+            for $s (TTF_Unpack('S*', $dat))
             { push(@subst, $self->read_cover($s, $loc, $lookup, $fh, 1)); }
             $t->{'PRE'} = [@subst];
         }
         $fh->read($dat, 2);
         $count = TTF_Unpack('S', $dat);
-        unless ($count == 0)
-        {
+        unless ($count == 0) {
             @subst = ();
             $fh->read($dat, $count << 1);
-            foreach $s (TTF_Unpack('S*', $dat))
+            for $s (TTF_Unpack('S*', $dat))
             { push(@subst, $self->read_cover($s, $loc, $lookup, $fh, 1)); }
             $t->{'POST'} = [@subst];
         }
@@ -207,8 +198,10 @@ sub read_sub
         $lookup->{'RULES'} = [[$t]];
         $lookup->{'ACTION_TYPE'} = 'r';
         $lookup->{'MATCH_TYPE'} = 'o';
-    } elsif ($type == 5 || $type == 6)
-    { $self->read_context($lookup, $fh, $type, $fmt, $cover, $count, $loc); }
+    }
+    elsif ($type == 5 || $type == 6) {
+    	$self->read_context($lookup, $fh, $type, $fmt, $cover, $count, $loc);
+    }
     $lookup;
 }
 
@@ -219,8 +212,7 @@ Returns the table type number for the extension table
 
 =cut
 
-sub extension
-{ return 7; }
+sub extension { return 7; }
 
 
 =head2 $t->out_sub($fh, $lookup, $index)
@@ -230,8 +222,7 @@ index, this function outputs the subtable to $fh at that point.
 
 =cut
 
-sub out_sub
-{
+sub out_sub {
     my ($self, $fh, $main_lookup, $index, $ctables, $base) = @_;
     my ($type) = $main_lookup->{'TYPE'};
     my ($lookup) = $main_lookup->{'SUB'}[$index];
@@ -239,44 +230,43 @@ sub out_sub
     my ($out, $r, $t, $i, $j, $offc, $offd, $numd);
     my ($num) = $#{$lookup->{'RULES'}} + 1;
 
-    if ($type == 1)
-    {
-        $out = pack("nn", $fmt, Font::TTF::Ttopen::ref_cache($lookup->{'COVERAGE'}, $ctables, 2 + $base));
-        if ($fmt == 1)
-        { $out .= pack("n", $lookup->{'ADJUST'}); }
-        else
-        {
+    if ($type == 1) {
+        $out = pack("nn", $fmt, Font::OTF::Ttopen::ref_cache($lookup->{'COVERAGE'}, $ctables, 2 + $base));
+        if ($fmt == 1) { $out .= pack("n", $lookup->{'ADJUST'}); }
+        else {
             $out .= pack("n", $num);
-            foreach $r (@{$lookup->{'RULES'}})
-            { $out .= pack("n", $r->[0]{'ACTION'}[0]); }
+            for $r (@{$lookup->{'RULES'}}) { $out .= pack("n", $r->[0]{'ACTION'}[0]); }
         }
-    } elsif ($type == 2 || $type == 3)
-    {
-        $out = pack("nnn", $fmt, Font::TTF::Ttopen::ref_cache($lookup->{'COVERAGE'}, $ctables, 2 + $base),
+    }
+    elsif ($type == 2 || $type == 3) {
+        $out = pack("nnn", $fmt, Font::OTF::Ttopen::ref_cache($lookup->{'COVERAGE'}, $ctables, 2 + $base),
                             $num);
         $out .= pack('n*', (0) x $num);
         $offc = length($out);
-        for ($i = 0; $i < $num; $i++)
-        {
+        for ($i = 0; $i < $num; $i++) {
             $out .= pack("n*", $#{$lookup->{'RULES'}[$i][0]{'ACTION'}} + 1,
                                     @{$lookup->{'RULES'}[$i][0]{'ACTION'}});
             substr($out, ($i << 1) + 6, 2) = pack('n', $offc);
             $offc = length($out);
         }
-    } elsif ($type == 8)
-    {
-        $out = pack("nn", $fmt, Font::TTF::Ttopen::ref_cache($lookup->{'COVERAGE'}, $ctables, 2 + $base));
+    }
+    elsif ($type == 8) {
+        $out = pack("nn", $fmt, Font::OTF::Ttopen::ref_cache($lookup->{'COVERAGE'}, $ctables, 2 + $base));
         $r = $lookup->{'RULES'}[0][0];
         $out .= pack('n', defined $r->{'PRE'} ? scalar @{$r->{'PRE'}} : 0);
-        foreach $t (@{$r->{'PRE'}})
-        { $out .= pack('n', Font::TTF::Ttopen::ref_cache($t, $ctables, length($out) + $base)); }
+        for $t (@{$r->{'PRE'}}) {
+        	$out .= pack('n', Font::OTF::Ttopen::ref_cache($t, $ctables, length($out) + $base));
+        }
         $out .= pack('n', defined $r->{'POST'} ? scalar @{$r->{'POST'}} : 0);
-        foreach $t (@{$r->{'POST'}})
-        { $out .= pack('n', Font::TTF::Ttopen::ref_cache($t, $ctables, length($out) + $base)); }
+        for $t (@{$r->{'POST'}}) {
+        	$out .= pack('n', Font::OTF::Ttopen::ref_cache($t, $ctables, length($out) + $base));
+        }
         $out .= pack("n*", $#{$r->{'ACTION'}} + 1, @{$r->{'ACTION'}});
-    } elsif ($type == 4 || $type == 5 || $type == 6)
-    { $out = $self->out_context($lookup, $fh, $type, $fmt, $ctables, $out, $num, $base); }
-#    Font::TTF::Ttopen::out_final($fh, $out, [[$ctables, 0]]);
+    }
+    elsif ($type == 4 || $type == 5 || $type == 6) {
+    	$out = $self->out_context($lookup, $fh, $type, $fmt, $ctables, $out, $num, $base);
+    }
+	# Font::OTF::Ttopen::out_final($fh, $out, [[$ctables, 0]]);
     $out;
 }
 
@@ -288,9 +278,9 @@ Martin Hosken L<http://scripts.sil.org/FontUtils>.
 
 =head1 LICENSING
 
-Copyright (c) 1998-2016, SIL International (http://www.sil.org) 
+Copyright (c) 1998-2016, SIL International (http://www.sil.org)
 
-This module is released under the terms of the Artistic License 2.0. 
+This module is released under the terms of the Artistic License 2.0.
 For details, see the full text of the license in the file LICENSE.
 
 

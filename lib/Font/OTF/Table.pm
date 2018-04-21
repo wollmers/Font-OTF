@@ -1,8 +1,8 @@
-package Font::TTF::Table;
+package Font::OTF::Table;
 
 =head1 NAME
 
-Font::TTF::Table - Superclass for tables and used for tables we don't have a class for
+Font::OTF::Table - Superclass for tables and used for tables we don't have a class for
 
 =head1 DESCRIPTION
 
@@ -27,7 +27,7 @@ file being created.
 
 =item nocompress
 
-If set, overrides the font default for WOFF table compression. Is a scalar integer specifying a 
+If set, overrides the font default for WOFF table compression. Is a scalar integer specifying a
 table size threshold below which this table will not be compressed. Set to -1 to never
 compress; 0 to always compress.
 
@@ -53,7 +53,7 @@ Checksum read from the input file's directory
 
 =item PARENT
 
-The L<Font::TTF::Font> that table is part of
+The L<Font::OTF::Font> that table is part of
 
 =back
 
@@ -63,27 +63,26 @@ The L<Font::TTF::Font> that table is part of
 
 use strict;
 use vars qw($VERSION);
-use Font::TTF::Utils;
+use Font::OTF::Utils;
 use IO::String;
 $VERSION = 0.0001;
 
 my $havezlib = eval {require Compress::Zlib};
 
-=head2 Font::TTF::Table->new(%parms)
+=head2 Font::OTF::Table->new(%parms)
 
 Creates a new table or subclass. Table instance variables are passed in
 at this point as an associative array.
 
 =cut
 
-sub new
-{
+sub new {
     my ($class, %parms) = @_;
     my ($self) = {};
     my ($p);
 
     $class = ref($class) || $class;
-    foreach $p (keys %parms)
+    for $p (keys %parms)
     { $self->{" $p"} = $parms{$p}; }
     bless $self, $class;
 }
@@ -97,25 +96,23 @@ C<undef> else returns C<$self>
 
 For WOFF-compressed tables, the table is first decompressed and a
 replacement file handle is created for reading the decompressed data. In this
-case ORIGINALOFFSET will preserve the original value of OFFSET for 
+case ORIGINALOFFSET will preserve the original value of OFFSET for
 applications that care.
 
 =cut
 
-sub read
-{
+sub read {
     my ($self) = @_;
 
-    return $self->read_dat if (ref($self) eq "Font::TTF::Table");
+    return $self->read_dat if (ref($self) eq "Font::OTF::Table");
     return undef if $self->{' read'};
     $self->{' INFILE'}->seek($self->{' OFFSET'}, 0);
-    if (0 < $self->{' ZLENGTH'} && $self->{' ZLENGTH'} < $self->{' LENGTH'})
-    {
+    if (0 < $self->{' ZLENGTH'} && $self->{' ZLENGTH'} < $self->{' LENGTH'}) {
         # WOFF table is compressed. Uncompress it to memory and create new fh
         die ("Cannot uncompress WOFF data: Compress::Zlib not present.\n") unless $havezlib;
         $self->{' ORIGINALOFFSET'} = $self->{' OFFSET'};    # Preserve this for those who care
         my $dat;
-        $self->{' INFILE'}->read($dat, $self->{' ZLENGTH'}); 
+        $self->{' INFILE'}->read($dat, $self->{' ZLENGTH'});
         $dat = Compress::Zlib::uncompress($dat);
         warn "$self->{' NAME'} table decompressed to wrong length" if $self->{' LENGTH'} != bytes::length($dat);
         $self->{' INFILE'} = IO::String->new($dat);
@@ -134,8 +131,7 @@ know any better
 
 =cut
 
-sub read_dat
-{
+sub read_dat {
     my ($self) = @_;
 
 # can't just $self->read here otherwise those tables which start their read sub with
@@ -143,18 +139,16 @@ sub read_dat
     return undef if ($self->{' read'});
 #    $self->{' read'} = 1;      # Let read do this, now out will call us for subclasses
     $self->{' INFILE'}->seek($self->{' OFFSET'}, 0);
-    if (0 < $self->{' ZLENGTH'} && $self->{' ZLENGTH'} < $self->{' LENGTH'})
-    {
+    if (0 < $self->{' ZLENGTH'} && $self->{' ZLENGTH'} < $self->{' LENGTH'}) {
         # WOFF table is compressed. Uncompress it directly to ' dat'
         die ("Cannot uncompress WOFF data: Compress::Zlib not present.\n") unless $havezlib;
         my $dat;
-        $self->{' INFILE'}->read($dat, $self->{' ZLENGTH'}); 
+        $self->{' INFILE'}->read($dat, $self->{' ZLENGTH'});
         $dat = Compress::Zlib::uncompress($dat);
         warn "$self->{' NAME'} table decompressed to wrong length" if $self->{' LENGTH'} != bytes::length($dat);
         $self->{' dat'} = $dat;
     }
-    else
-    {
+    else {
         $self->{' INFILE'}->read($self->{' dat'}, $self->{' LENGTH'});
     }
     $self;
@@ -168,36 +162,32 @@ from the input file to the output
 
 =cut
 
-sub out
-{
+sub out {
     my ($self, $fh) = @_;
     my ($dat, $i, $len, $count);
 
-    if (defined $self->{' dat'})
-    {
+    if (defined $self->{' dat'}) {
         $fh->print($self->{' dat'});
         return $self;
     }
 
     return undef unless defined $self->{' INFILE'};
-    
-    if (0 < $self->{' ZLENGTH'} && $self->{' ZLENGTH'} < $self->{' LENGTH'})
-    {
+
+    if (0 < $self->{' ZLENGTH'} && $self->{' ZLENGTH'} < $self->{' LENGTH'}) {
         # WOFF table is compressed. Have to uncompress first
         $self->read_dat;
         $fh->print($self->{' dat'});
         return $self;
     }
 
-    # We don't really have to keep the following code... we could have 
+    # We don't really have to keep the following code... we could have
     # just always done a full read_dat() on the table. But the following
-    # is more memory-friendly so I've kept it for the more common case 
+    # is more memory-friendly so I've kept it for the more common case
     # of non-compressed tables.
 
     $self->{' INFILE'}->seek($self->{' OFFSET'}, 0);
     $len = $self->{' LENGTH'};
-    while ($len > 0)
-    {
+    while ($len > 0) {
         $count = ($len > 4096) ? 4096 : $len;
         $self->{' INFILE'}->read($dat, $count);
         $fh->print($dat);
@@ -214,21 +204,17 @@ there is no subclass, then the data is dumped as hex data
 
 =cut
 
-sub out_xml
-{
+sub out_xml {
     my ($self, $context, $depth) = @_;
     my ($k);
 
-    if (ref($self) eq __PACKAGE__)
-    {
+    if (ref($self) eq __PACKAGE__) {
         $self->read_dat;
-        Font::TTF::Utils::XML_hexdump($context, $depth, $self->{' dat'});
+        Font::OTF::Utils::XML_hexdump($context, $depth, $self->{' dat'});
     }
-    else
-    {
+    else {
         $self->read;
-        foreach $k (sort grep {$_ !~ m/^\s/o} keys %{$self})
-        {
+        for $k (sort grep {$_ !~ m/^\s/o} keys %{$self}) {
             $self->XML_element($context, $depth, $k, $self->{$k});
         }
     }
@@ -242,41 +228,32 @@ Output a particular element based on its contents.
 
 =cut
 
-sub XML_element
-{
+sub XML_element {
     my ($self, $context, $depth, $k, $dat, $ind) = @_;
     my ($fh) = $context->{'fh'};
     my ($ndepth, $d);
 
     return unless defined $dat;
-    
-    if (!ref($dat))
-    {
+
+    if (!ref($dat)) {
         $fh->printf("%s<%s>%s</%s>\n", $depth, $k, $dat, $k);
         return $self;
     }
 
-    if ($ind)
-    { $fh->printf("%s<%s i='%d'>\n", $depth, $k, $ind); }
-    else
-    { $fh->printf("%s<%s>\n", $depth, $k); }
+    if ($ind) { $fh->printf("%s<%s i='%d'>\n", $depth, $k, $ind); }
+    else { $fh->printf("%s<%s>\n", $depth, $k); }
     $ndepth = $depth . $context->{'indent'};
 
-    if (ref($dat) eq 'SCALAR')
-    { $self->XML_element($context, $ndepth, 'scalar', $$dat); }
-    elsif (ref($dat) eq 'ARRAY')
-    {
+    if (ref($dat) eq 'SCALAR') { $self->XML_element($context, $ndepth, 'scalar', $$dat); }
+    elsif (ref($dat) eq 'ARRAY') {
         my ($c) = 1;
-        foreach $d (@{$dat})
-        { $self->XML_element($context, $ndepth, 'elem', $d, $c++); }
+        for $d (@{$dat}) { $self->XML_element($context, $ndepth, 'elem', $d, $c++); }
     }
-    elsif (ref($dat) eq 'HASH')
-    {
-        foreach $d (sort grep {$_ !~ m/^\s/o} keys %{$dat})
+    elsif (ref($dat) eq 'HASH') {
+        for $d (sort grep {$_ !~ m/^\s/o} keys %{$dat})
         { $self->XML_element($context, $ndepth, $d, $dat->{$d}); }
     }
-    else
-    {
+    else {
         $context->{'name'} = ref($dat);
         $context->{'name'} =~ s/^.*://o;
         $dat->out_xml($context, $ndepth);
@@ -293,22 +270,19 @@ Handles the default type of <data> for those tables which aren't subclassed
 
 =cut
 
-sub XML_end
-{
+sub XML_end {
     my ($self, $context, $tag, %attrs) = @_;
     my ($dat, $addr);
 
     return undef unless ($tag eq 'data');
     $dat = $context->{'text'};
     $dat =~ s/([0-9a-f]{2})\s*/hex($1)/oig;
-    if (defined $attrs{'addr'})
-    { $addr = hex($attrs{'addr'}); }
-    else
-    { $addr = length($self->{' dat'}); }
+    if (defined $attrs{'addr'}) { $addr = hex($attrs{'addr'}); }
+    else { $addr = length($self->{' dat'}); }
     substr($self->{' dat'}, $addr, length($dat)) = $dat;
     return $context;
 }
-    
+
 
 =head2 $t->minsize()
 
@@ -317,8 +291,7 @@ must be bad and should be deleted or whatever.
 
 =cut
 
-sub minsize
-{
+sub minsize {
     return 0;
 }
 
@@ -329,8 +302,7 @@ value of the flag
 
 =cut
 
-sub dirty
-{
+sub dirty {
     my ($self, $val) = @_;
     my ($res) = $self->{' isDirty'};
 
@@ -351,18 +323,15 @@ themselves by setting isDirty above 1. This method resets that accordingly.
 
 =cut
 
-sub update
-{
+sub update {
     my ($self) = @_;
 
-    if ($self->{' isDirty'})
-    {
+    if ($self->{' isDirty'}) {
         $self->read;
         $self->{' isDirty'} = 0;
         return $self;
     }
-    else
-    { return undef; }
+    else { return undef; }
 }
 
 
@@ -372,13 +341,11 @@ Clears a table of all data to the level of not having been read
 
 =cut
 
-sub empty
-{
+sub empty {
     my ($self) = @_;
     my (%keep);
 
-    foreach (qw(INFILE LENGTH OFFSET CSUM PARENT))
-    { $keep{" $_"} = 1; }
+    for (qw(INFILE LENGTH OFFSET CSUM PARENT)) { $keep{" $_"} = 1; }
 
     map {delete $self->{$_} unless $keep{$_}} keys %$self;
     $self;
@@ -389,51 +356,46 @@ sub empty
 
 Releases ALL of the memory used by this table, and all of its component/child
 objects.  This method is called automatically by
-'Font::TTF::Font-E<gt>release' (so you don't have to call it yourself).
+'Font::OTF::Font-E<gt>release' (so you don't have to call it yourself).
 
 B<NOTE>, that it is important that this method get called at some point prior
 to the actual destruction of the object.  Internally, we track things in a
 structure that can result in circular references, and without calling
 'C<release()>' these will not properly get cleaned up by Perl.  Once this
 method has been called, though, don't expect to be able to do anything with the
-C<Font::TTF::Table> object; it'll have B<no> internal state whatsoever.
+C<Font::OTF::Table> object; it'll have B<no> internal state whatsoever.
 
 B<Developer note:>  As part of the brute-force cleanup done here, this method
 will throw a warning message whenever unexpected key values are found within
-the C<Font::TTF::Table> object.  This is done to help ensure that any
+the C<Font::OTF::Table> object.  This is done to help ensure that any
 unexpected and unfreed values are brought to your attention so that you can bug
 us to keep the module updated properly; otherwise the potential for memory
 leaks due to dangling circular references will exist.
 
 =cut
 
-sub release
-{
+sub release {
     my ($self) = @_;
 
 # delete stuff that we know we can, here
 
     my @tofree = map { delete $self->{$_} } keys %{$self};
 
-    while (my $item = shift @tofree)
-    {
+    while (my $item = shift @tofree) {
         my $ref = ref($item);
-        if (UNIVERSAL::can($item, 'release'))
-        { $item->release(); }
-        elsif ($ref eq 'ARRAY')
-        { push( @tofree, @{$item} ); }
-        elsif (UNIVERSAL::isa($ref, 'HASH'))
-        { release($item); }
+        if (UNIVERSAL::can($item, 'release')) { $item->release(); }
+        elsif ($ref eq 'ARRAY') { push( @tofree, @{$item} ); }
+        elsif (UNIVERSAL::isa($ref, 'HASH')) { release($item); }
     }
 
 # check that everything has gone - it better had!
-    foreach my $key (keys %{$self})
-    { warn ref($self) . " still has '$key' key left after release.\n"; }
+    for my $key (keys %{$self}) {
+    	warn ref($self) . " still has '$key' key left after release.\n";
+    }
 }
 
 
-sub __dumpvar__
-{
+sub __dumpvar__ {
     my ($self, $key) = @_;
 
     return ($key eq ' PARENT' ? '...parent...' : $self->{$key});
@@ -447,14 +409,14 @@ No known bugs
 
 =head1 AUTHOR
 
-Martin Hosken L<http://scripts.sil.org/FontUtils>. 
+Martin Hosken L<http://scripts.sil.org/FontUtils>.
 
 
 =head1 LICENSING
 
-Copyright (c) 1998-2016, SIL International (http://www.sil.org) 
+Copyright (c) 1998-2016, SIL International (http://www.sil.org)
 
-This module is released under the terms of the Artistic License 2.0. 
+This module is released under the terms of the Artistic License 2.0.
 For details, see the full text of the license in the file LICENSE.
 
 

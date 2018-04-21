@@ -1,19 +1,19 @@
-package Font::TTF::Dumper;
+package Font::OTF::Dumper;
 
 =head1 NAME
 
-Font::TTF::Dumper - Debug dump of a font datastructure, avoiding recursion on ' PARENT'
+Font::OTF::Dumper - Debug dump of a font datastructure, avoiding recursion on ' PARENT'
 
 =head1 SYNOPSIS
 
-    use Font::TTF::Dumper;
-    
+    use Font::OTF::Dumper;
+
     # Print a table from the font structure:
     print ttfdump($font->{$tag});
-    
+
     # Print font table with name
     print ttfdump($font->{'head'}, 'head');
-    
+
     # Print font table with name and other options
     print ttfdump($font->{'head'}, 'head', %opts);
 
@@ -22,7 +22,7 @@ Font::TTF::Dumper - Debug dump of a font datastructure, avoiding recursion on ' 
 
 =head1 DESCRIPTION
 
-Font::TTF data structures are trees created from hashes and arrays. When trying to figure
+Font::OTF data structures are trees created from hashes and arrays. When trying to figure
 out how the structures work, sometimes it is helpful to use Data::Dumper on them. However,
 many of the object structures have ' PARENT' links that refer back to the object's parent,
 which means that Data::Dumper ends up dumping the whole font no matter what.
@@ -30,8 +30,8 @@ which means that Data::Dumper ends up dumping the whole font no matter what.
 The main purpose of this module is to invoke Data::Dumper with a
 filter that skips over the ' PARENT' element of any hash.
 
-To reduce output further, this module also skips over ' CACHE' elements and any 
-hash element whose value is a Font::TTF::Glyph or Font::TTF::Font object. 
+To reduce output further, this module also skips over ' CACHE' elements and any
+hash element whose value is a Font::OTF::Glyph or Font::OTF::Font object.
 (Really should make this configurable.)
 
 If $opts{'d'}, then set Deepcopy mode to minimize use of crossreferencing.
@@ -48,11 +48,10 @@ require Exporter;
 
 my %skip = ( Font => 1, Glyph => 1 );
 
-sub ttfdump
-{
+sub ttfdump {
     my ($var, $name, %opts) = @_;
     my $res;
-    
+
     my $d = Data::Dumper->new([$var]);
     $d->Names([$name]) if defined $name;
     $d->Sortkeys(\&myfilter);   # This is the trick to keep from dumping the whole font
@@ -64,12 +63,11 @@ sub ttfdump
     $res;
 }
 
-sub myfilter
-{
+sub myfilter {
     my ($hash) = @_;
     my @a = grep {
             ($_ eq ' PARENT' || $_ eq ' CACHE') ? 0 :
-            ref($hash->{$_}) =~ m/^Font::TTF::(.*)$/ ? !$skip{$1} :
+            ref($hash->{$_}) =~ m/^Font::OTF::(.*)$/ ? !$skip{$1} :
             1
         } (keys %{$hash}) ;
     # Sort numerically if that is reasonable:
@@ -86,9 +84,9 @@ Bob Hallissy L<http://scripts.sil.org/FontUtils>.
 
 =head1 LICENSING
 
-Copyright (c) 1998-2016, SIL International (http://www.sil.org) 
+Copyright (c) 1998-2016, SIL International (http://www.sil.org)
 
-This module is released under the terms of the Artistic License 2.0. 
+This module is released under the terms of the Artistic License 2.0.
 For details, see the full text of the license in the file LICENSE.
 
 

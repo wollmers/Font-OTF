@@ -1,8 +1,8 @@
-package Font::TTF::Loca;
+package Font::OTF::Loca;
 
 =head1 NAME
 
-Font::TTF::Loca - the Locations table, which is intimately tied to the glyf table
+Font::OTF::Loca - the Locations table, which is intimately tied to the glyf table
 
 =head1 DESCRIPTION
 
@@ -31,7 +31,7 @@ An array of glyph objects for each glyph.
 =item glyphtype
 
 A string containing the class name to create for each new glyph. If empty,
-defaults to L<Font::TTF::Glyph>.
+defaults to L<Font::OTF::Glyph>.
 
 =back
 
@@ -41,9 +41,9 @@ defaults to L<Font::TTF::Glyph>.
 
 use strict;
 use vars qw(@ISA);
-@ISA = qw(Font::TTF::Table);
+@ISA = qw(Font::OTF::Table);
 
-require Font::TTF::Glyph;
+require Font::OTF::Glyph;
 
 
 =head2 $t->new
@@ -52,8 +52,7 @@ Creates a new location table making sure it has a glyphs array
 
 =cut
 
-sub new
-{
+sub new {
     my ($class) = shift;
     my ($res) = $class->SUPER::new(@_);
     $res->{'glyphs'} = [];
@@ -62,13 +61,12 @@ sub new
 
 =head2 $t->read
 
-Reads the location table creating glyph objects (L<Font::TTF::Glyph>) for each glyph
+Reads the location table creating glyph objects (L<Font::OTF::Glyph>) for each glyph
 allowing their later reading.
 
 =cut
 
-sub read
-{
+sub read {
     my ($self) = @_;
 
     # Do this before $self->SUPER::read because this can alter the file pointer:
@@ -83,11 +81,10 @@ sub read
 
     $fh->read($dat, $locFmt ? 4 : 2);
     $last = unpack($locFmt ? "N" : "n", $dat);
-    for ($i = 0; $i < $numGlyphs; $i++)
-    {
+    for ($i = 0; $i < $numGlyphs; $i++) {
         $fh->read($dat, $locFmt ? 4 : 2);
         $loc = unpack($locFmt ? "N" : "n", $dat);
-        $self->{'glyphs'}[$i] = ($self->{'glyphtype'} || "Font::TTF::Glyph")->new(
+        $self->{'glyphs'}[$i] = ($self->{'glyphtype'} || "Font::OTF::Glyph")->new(
                 LOC => $last << ($locFmt ? 0 : 1),
                 OUTLOC => $last << ($locFmt ? 0 : 1),
                 PARENT => $self->{' PARENT'},
@@ -113,8 +110,7 @@ table was attempted to be output.
 
 =cut
 
-sub out
-{
+sub out {
     my ($self, $fh) = @_;
     my ($locFmt) = $self->{' PARENT'}{'head'}{'indexToLocFormat'};
     my ($numGlyphs) = $self->{' PARENT'}{'maxp'}{'numGlyphs'};
@@ -123,19 +119,15 @@ sub out
     return $self->SUPER::out($fh) unless ($self->{' read'});
 
     $count = 0;
-    for ($i = 0; $i < $numGlyphs; $i++)
-    {
+    for ($i = 0; $i < $numGlyphs; $i++) {
         $g = ($self->{'glyphs'}[$i]) || "";
-        unless ($g)
-        {
+        unless ($g) {
             $count++;
             next;
-        } else
-        {
-            if ($locFmt)
-            { $fh->print(pack("N", $g->{' OUTLOC'}) x ($count + 1)); }
-            else
-            { $fh->print(pack("n", $g->{' OUTLOC'} >> 1) x ($count + 1)); }
+        }
+        else {
+            if ($locFmt) { $fh->print(pack("N", $g->{' OUTLOC'}) x ($count + 1)); }
+            else { $fh->print(pack("n", $g->{' OUTLOC'} >> 1) x ($count + 1)); }
             $count = 0;
             $offset = $g->{' OUTLOC'} + $g->{' OUTLEN'};
         }
@@ -150,8 +142,7 @@ No need to output a loca table, this is dynamically generated
 
 =cut
 
-sub out_xml
-{ return $_[0]; }
+sub out_xml { return $_[0]; }
 
 
 =head2 $t->glyphs_do(&func)
@@ -162,13 +153,13 @@ Calls func for each glyph in this location table in numerical order:
 
 =cut
 
-sub glyphs_do
-{
+sub glyphs_do {
     my ($self, $func) = @_;
     my ($i);
 
-    for ($i = 0; $i <= $#{$self->{'glyphs'}}; $i++)
-    { &$func($self->{'glyphs'}[$i], $i) if defined $self->{'glyphs'}[$i]; }
+    for ($i = 0; $i <= $#{$self->{'glyphs'}}; $i++) {
+    	&$func($self->{'glyphs'}[$i], $i) if defined $self->{'glyphs'}[$i];
+    }
     $self;
 }
 
@@ -180,14 +171,14 @@ None known
 
 =head1 AUTHOR
 
-Martin Hosken L<http://scripts.sil.org/FontUtils>. 
+Martin Hosken L<http://scripts.sil.org/FontUtils>.
 
 
 =head1 LICENSING
 
-Copyright (c) 1998-2016, SIL International (http://www.sil.org) 
+Copyright (c) 1998-2016, SIL International (http://www.sil.org)
 
-This module is released under the terms of the Artistic License 2.0. 
+This module is released under the terms of the Artistic License 2.0.
 For details, see the full text of the license in the file LICENSE.
 
 

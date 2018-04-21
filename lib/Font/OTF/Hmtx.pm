@@ -1,8 +1,8 @@
-package Font::TTF::Hmtx;
+package Font::OTF::Hmtx;
 
 =head1 NAME
 
-Font::TTF::Hmtx - Horizontal Metrics
+Font::OTF::Hmtx - Horizontal Metrics
 
 =head1 DESCRIPTION
 
@@ -34,9 +34,9 @@ An array containing the left side bearing for each glyph
 
 use strict;
 use vars qw(@ISA);
-require Font::TTF::Table;
+require Font::OTF::Table;
 
-@ISA = qw(Font::TTF::Table);
+@ISA = qw(Font::OTF::Table);
 
 
 =head2 $t->read
@@ -45,8 +45,7 @@ Reads the horizontal metrics from the TTF file into memory
 
 =cut
 
-sub read
-{
+sub read {
     my ($self) = @_;
     my ($numh, $numg);
 
@@ -55,24 +54,21 @@ sub read
     $self->_read($numg, $numh, "advance", "lsb");
 }
 
-sub _read
-{
+sub _read {
     my ($self, $numg, $numh, $tAdv, $tLsb) = @_;
     $self->SUPER::read or return $self;
 
     my ($fh) = $self->{' INFILE'};
     my ($i, $dat);
 
-    for ($i = 0; $i < $numh; $i++)
-    {
+    for ($i = 0; $i < $numh; $i++) {
         $fh->read($dat, 4);
         ($self->{$tAdv}[$i], $self->{$tLsb}[$i]) = unpack("nn", $dat);
         $self->{$tLsb}[$i] -= 65536 if ($self->{$tLsb}[$i] >= 32768);
     }
-    
+
     $i--;
-    while (++$i < $numg)
-    {
+    while (++$i < $numg) {
         $fh->read($dat, 2);
         $self->{$tAdv}[$i] = $self->{$tAdv}[$numh - 1];
         $self->{$tLsb}[$i] = unpack("n", $dat);
@@ -80,7 +76,7 @@ sub _read
     }
     $self;
 }
-    
+
 =head2 $t->numMetrics
 
 Calculates again the number of long metrics required to store the information
@@ -88,8 +84,7 @@ here. Returns undef if the table has not been read.
 
 =cut
 
-sub numMetrics
-{
+sub numMetrics {
     my ($self) = @_;
     my ($numg) = $self->{' PARENT'}{'maxp'}{'numGlyphs'};
     my ($i);
@@ -110,16 +105,14 @@ numHMetrics from here
 
 =cut
 
-sub out
-{
+sub out {
     my ($self, $fh) = @_;
     my ($numg) = $self->{' PARENT'}{'maxp'}{'numGlyphs'};
     my ($numh) = $self->{' PARENT'}{'hhea'}->read->{'numberOfHMetrics'};
     $self->_out($fh, $numg, $numh, "advance", "lsb");
 }
 
-sub _out
-{
+sub _out {
     my ($self, $fh, $numg, $numh, $tAdv, $tLsb) = @_;
     my ($i, $lsb);
 
@@ -144,8 +137,7 @@ Updates the lsb values from the xMin from the each glyph
 
 =cut
 
-sub update
-{
+sub update {
     my ($self) = @_;
     my ($numg) = $self->{' PARENT'}{'maxp'}{'numGlyphs'};
     my ($i);
@@ -155,8 +147,7 @@ sub update
 #    return $self unless ($self->{' PARENT'}{'head'}{'flags'} & 2);        # lsb & xMin the same
 
     $self->{' PARENT'}{'loca'}->update;
-    for ($i = 0; $i < $numg; $i++)
-    {
+    for ($i = 0; $i < $numg; $i++) {
         my ($g) = $self->{' PARENT'}{'loca'}{'glyphs'}[$i];
         if ($g)
         { $self->{'lsb'}[$i] = $g->read->update_bbox->{'xMin'}; }
@@ -166,7 +157,7 @@ sub update
     $self->{' PARENT'}{'head'}{'flags'} |= 2;
     $self;
 }
-    
+
 
 =head2 $t->out_xml($context, $depth)
 
@@ -174,26 +165,24 @@ Outputs the table in XML
 
 =cut
 
-sub out_xml
-{
+sub out_xml {
     my ($self, $context, $depth) = @_;
     my ($fh) = $context->{'fh'};
     my ($numg) = $self->{' PARENT'}{'maxp'}{'numGlyphs'};
     my ($addr) = ($self =~ m/\((.+)\)$/o);
     my ($i);
 
-    if ($context->{'addresses'}{$addr})
-    {
+    if ($context->{'addresses'}{$addr}) {
         $fh->printf("%s<%s id_ref='%s'/>\n", $depth, $context->{'name'}, $addr);
         return $self;
     }
-    else
-    { $fh->printf("%s<%s id='%s'>\n", $depth, $context->{'name'}, $addr); }
+    else { $fh->printf("%s<%s id='%s'>\n", $depth, $context->{'name'}, $addr); }
 
     $self->read;
 
-    for ($i = 0; $i < $numg; $i++)
-    { $fh->print("$depth$context->{'indent'}<width gid='$i' adv='$self->{'advance'}[$i]' lsb='$self->{'lsb'}[$i]'/>\n"); }
+    for ($i = 0; $i < $numg; $i++) {
+    	$fh->print("$depth$context->{'indent'}<width gid='$i' adv='$self->{'advance'}[$i]' lsb='$self->{'lsb'}[$i]'/>\n");
+    }
 
     $fh->print("$depth</$context->{'name'}>\n");
     $self;
@@ -207,14 +196,14 @@ None known
 
 =head1 AUTHOR
 
-Martin Hosken L<http://scripts.sil.org/FontUtils>. 
+Martin Hosken L<http://scripts.sil.org/FontUtils>.
 
 
 =head1 LICENSING
 
-Copyright (c) 1998-2016, SIL International (http://www.sil.org) 
+Copyright (c) 1998-2016, SIL International (http://www.sil.org)
 
-This module is released under the terms of the Artistic License 2.0. 
+This module is released under the terms of the Artistic License 2.0.
 For details, see the full text of the license in the file LICENSE.
 
 

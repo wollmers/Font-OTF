@@ -1,8 +1,8 @@
-package Font::TTF::Mort::Noncontextual;
+package Font::OTF::Mort::Noncontextual;
 
 =head1 NAME
 
-Font::TTF::Mort::Noncontextual - Noncontextual Mort subtable for AAT
+Font::OTF::Mort::Noncontextual - Noncontextual Mort subtable for AAT
 
 =head1 METHODS
 
@@ -10,13 +10,12 @@ Font::TTF::Mort::Noncontextual - Noncontextual Mort subtable for AAT
 
 use strict;
 use vars qw(@ISA);
-use Font::TTF::Utils;
-use Font::TTF::AATutils;
+use Font::OTF::Utils;
+use Font::OTF::AATutils;
 
-@ISA = qw(Font::TTF::Mort::Subtable);
+@ISA = qw(Font::OTF::Mort::Subtable);
 
-sub new
-{
+sub new {
     my ($class, $direction, $orientation, $subFeatureFlags) = @_;
     my ($self) = {
                     'direction'            => $direction,
@@ -34,11 +33,10 @@ Reads the table into memory
 
 =cut
 
-sub read
-{
+sub read {
     my ($self, $fh) = @_;
     my ($dat);
-    
+
     my ($format, $lookup) = AAT_read_lookup($fh, 2, $self->{'length'} - 8, undef);
     $self->{'format'} = $format;
     $self->{'lookup'} = $lookup;
@@ -50,10 +48,9 @@ sub read
 
 =cut
 
-sub pack_sub
-{
+sub pack_sub {
     my ($self) = @_;
-    
+
     return AAT_pack_lookup($self->{'format'}, $self->{'lookup'}, 2, undef);
 }
 
@@ -63,18 +60,17 @@ Prints a human-readable representation of the table
 
 =cut
 
-sub print
-{
+sub print {
     my ($self, $fh) = @_;
-    
+
     my $post = $self->post();
-    
+
     $fh = 'STDOUT' unless defined $fh;
 
     my $lookup = $self->{'lookup'};
     $fh->printf("\t\tLookup format %d\n", $self->{'format'});
     if (defined $lookup) {
-        foreach (sort { $a <=> $b } keys %$lookup) {
+        for (sort { $a <=> $b } keys %$lookup) {
             $fh->printf("\t\t\t%d [%s] -> %d [%s])\n", $_, $post->{'VAL'}[$_], $lookup->{$_}, $post->{'VAL'}[$lookup->{$_}]);
         }
     }
@@ -88,14 +84,14 @@ None known
 
 =head1 AUTHOR
 
-Jonathan Kew L<http://scripts.sil.org/FontUtils>. 
+Jonathan Kew L<http://scripts.sil.org/FontUtils>.
 
 
 =head1 LICENSING
 
-Copyright (c) 1998-2016, SIL International (http://www.sil.org) 
+Copyright (c) 1998-2016, SIL International (http://www.sil.org)
 
-This module is released under the terms of the Artistic License 2.0. 
+This module is released under the terms of the Artistic License 2.0.
 For details, see the full text of the license in the file LICENSE.
 
 

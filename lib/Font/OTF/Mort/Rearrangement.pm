@@ -1,8 +1,8 @@
-package Font::TTF::Mort::Rearrangement;
+package Font::OTF::Mort::Rearrangement;
 
 =head1 NAME
 
-Font::TTF::Mort::Rearrangement - Rearrangement Mort subtable for AAT
+Font::OTF::Mort::Rearrangement - Rearrangement Mort subtable for AAT
 
 =head1 METHODS
 
@@ -10,13 +10,12 @@ Font::TTF::Mort::Rearrangement - Rearrangement Mort subtable for AAT
 
 use strict;
 use vars qw(@ISA);
-use Font::TTF::Utils;
-use Font::TTF::AATutils;
+use Font::OTF::Utils;
+use Font::OTF::AATutils;
 
-@ISA = qw(Font::TTF::Mort::Subtable);
+@ISA = qw(Font::OTF::Mort::Subtable);
 
-sub new
-{
+sub new {
     my ($class, $direction, $orientation, $subFeatureFlags) = @_;
     my ($self) = {
                     'direction'            => $direction,
@@ -34,14 +33,13 @@ Reads the table into memory
 
 =cut
 
-sub read
-{
+sub read {
     my ($self, $fh) = @_;
-    
+
     my ($classes, $states) = AAT_read_state_table($fh, 0);
     $self->{'classes'} = $classes;
     $self->{'states'} = $states;
-            
+
     $self;
 }
 
@@ -49,10 +47,9 @@ sub read
 
 =cut
 
-sub pack_sub
-{
+sub pack_sub {
     my ($self) = @_;
-    
+
     return AAT_pack_state_table($self->{'classes'}, $self->{'states'}, 0);
 }
 
@@ -62,12 +59,11 @@ Prints a human-readable representation of the table
 
 =cut
 
-sub print
-{
+sub print {
     my ($self, $fh) = @_;
-    
+
     my $post = $self->post();
-    
+
     $fh = 'STDOUT' unless defined $fh;
 
     $self->print_classes($fh);
@@ -78,10 +74,10 @@ sub print
                     "ABx->xAB", "ABx->xBA", "xCD->CDx", "xCD->DCx",
                     "AxCD->CDxA", "AxCD->DCxA", "ABxD->DxAB", "ABxD->DxBA",
                     "ABxCD->CDxAB", "ABxCD->CDxBA", "ABxCD->DCxAB", "ABxCD->DCxBA");
-    foreach (0 .. $#$states) {
+    for (0 .. $#$states) {
         $fh->printf("\t\tState %d:", $_);
         my $state = $states->[$_];
-        foreach (@$state) {
+        for (@$state) {
             my $flags;
             $flags .= "!" if ($_->{'flags'} & 0x4000);
             $flags .= "<" if ($_->{'flags'} & 0x8000);
@@ -100,14 +96,14 @@ None known
 
 =head1 AUTHOR
 
-Jonathan Kew L<http://scripts.sil.org/FontUtils>. 
+Jonathan Kew L<http://scripts.sil.org/FontUtils>.
 
 
 =head1 LICENSING
 
-Copyright (c) 1998-2016, SIL International (http://www.sil.org) 
+Copyright (c) 1998-2016, SIL International (http://www.sil.org)
 
-This module is released under the terms of the Artistic License 2.0. 
+This module is released under the terms of the Artistic License 2.0.
 For details, see the full text of the license in the file LICENSE.
 
 
