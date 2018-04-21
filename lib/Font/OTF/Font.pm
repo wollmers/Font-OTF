@@ -15,13 +15,12 @@ the outputs of the two runs.
     # force a read of all the tables
     $f->tables_do(sub { $_[0]->read; });
 
-    # force read of all glyphs (use read_dat to use lots of memory!)
-    # $f->{'loca'}->glyphs_do(sub { $_[0]->read; });
+    # force read of all glyphs
     $f->{'loca'}->glyphs_do(sub { $_[0]->read_dat; });
     # NB. no need to $g->update since $f->{'glyf'}->out will do it for us
 
     $f->out($ARGV[1]);
-    $f->release;            # clear up memory forcefully!
+    $f->release;            # clear up memory forcefully
 
 =head1 DESCRIPTION
 
@@ -198,7 +197,7 @@ $VERSION = 0.01;
 BEGIN {
     my ($p);
 
-    foreach $p (@INC) {
+    for $p (@INC) {
         if (-f "$p/mydumpvar.pl") {
             $dumper = 'mydumpvar.pl';
             last;
@@ -238,8 +237,7 @@ sub Init {
     my ($class) = @_;
     my ($t);
 
-    foreach $t (values %tables)
-    {
+    for $t (values %tables) {
         $t =~ s|::|/|oig;
         require "$t.pm";
     }
@@ -254,13 +252,14 @@ order that fields do not clash with tables.
 
 =cut
 
+
 sub new {
     my ($class, %props) = @_;
     my ($self) = {};
 
     bless $self, $class;
 
-    foreach (keys %props) { $self->{" $_"} = $props{$_}; }
+    for (keys %props) { $self->{" $_"} = $props{$_}; }
     $self;
 }
 
@@ -291,6 +290,32 @@ sub open {
     $self->read;
 }
 
+# see also: fontTools/tty.py->guessFileType() XXX: wrong place for testing XML
+
+sub _header {
+  my ($self, $head) = @_;
+
+  my $sigs = [
+	{'sig' => unpack('N', 'snft'), 'type' => 'TTF',  'desc' => 'TTF'},
+	{'sig' => unpack('N', 'FFIL'), 'type' => 'TTF',  'desc' => 'TTF'},
+	{'sig' => unpack('N', 'OTTO'), 'type' => 'OTTO', 'desc' => 'CFF data (v1 or v2)'},
+	{'sig' => unpack('N', 'ttcf'), 'type' => 'TTC',  'desc' => 'TrueType Collection'},
+	{'sig' => x0100,               'type' => 'x010', 'desc' => 'TrueType outlines'},
+	{'sig' => unpack('N', 'true'), 'type' => 'true', 'desc' => 'Apple TTF'},
+	{'sig' => unpack('N', 'typ1'), 'type' => 'TTF',  'desc' => 'Apple TTF'},
+	{'sig' => unpack('N', 'wOFF'), 'type' => 'wOFF', 'desc' => 'wOFF'},
+	{'sig' => unpack('N', 'wOF2'), 'type' => 'wOF2', 'desc' => 'wOF2'},
+	{'sig' => xefbbbf3c,           'type' => 'BOM',  'desc' => 'maybe XML'},
+	{'sig' => unpack('N', '<?xm'), 'type' => 'xml',  'desc' => 'maybe OTX or TTX'},
+  ];
+
+  for my $sig (@{$sigs}) {
+    if ($head == $sig->{'sig'}) { return $sig->{'type'} }
+  }
+  return '';
+}
+
+
 =head2 $f->read
 
 Reads a Truetype font directory starting from location C<$self->{' OFFSET'}> in the file.
@@ -308,7 +333,8 @@ sub read {
     $fh->seek($self->{' OFFSET'}, 0);
     $fh->read($dat, 4);
     $ver = unpack("N", $dat);
-    $iswoff = ($ver == unpack('N', 'wOFF'));
+    #$iswoff = ($ver == unpack('N', 'wOFF'));
+    $iswoff = ($self->_header($ver) eq 'wOFF'));
     if ($iswoff) {
         require Font::OTF::Woff;
         my $woff = Font::OTF::Woff->new(PARENT  => $self);
@@ -354,10 +380,10 @@ sub read {
         $dir_num = unpack("n", $dat);
     }
 
-    $ver == 1 << 16                 # TrueType outlines
-    || $ver == unpack('N', 'OTTO')  # 0x4F54544F CFF outlines
-    || $ver == unpack('N', 'true')  # 0x74727565 Mac sfnts
-    or return undef;            # else unrecognized type
+    $self->_header($ver)    eq 'x010'   # TrueType outlines
+    || $self->_header($ver) eq 'OTTO')  # 0x4F54544F CFF outlines
+    || $self->_header($ver) eq 'true')  # 0x74727565 Mac sfnts
+    or return undef;                    # unsupported type # TODO: Error message
 
 
     for ($i = 0; $i < $dir_num; $i++) {
@@ -392,7 +418,7 @@ sub read {
                                     CSUM    => $check);
     }
 
-    foreach $t ('head', 'maxp') { $self->{$t}->read if defined $self->{$t}; }
+    for $t ('head', 'maxp') { $self->{$t}->read if defined $self->{$t}; }
 
     $self;
 }
@@ -447,8 +473,7 @@ sub out {
     $numTables = $#tlist + 1;
     $numTables++ if ($self->{' wantsig'});
 
-    if ($iswoff) {
-    }
+    if ($iswoff) { }
     else {
         ($numTables, $sRange, $eSel, $shift) = Font::OTF::Utils::TTF_bininfo($numTables, 16);
         $dat = pack("Nnnnn", 1 << 16, $numTables, $sRange, $eSel, $shift);
@@ -457,7 +482,7 @@ sub out {
     }
 
 # reserve place holders for each directory entry
-    foreach $k (@tlist) {
+    for $k (@tlist) {
         $dir{$k} = pack("A4NNN", $k, 0, 0, 0);
         $fh->print($dir{$k});
     }
@@ -470,14 +495,13 @@ sub out {
         $loc += 4 - ($loc & 3);
     }
 
-    foreach $k (@tlist) {
+    for $k (@tlist) {
         $oldloc = $loc;
         if ($iswoff && $havezlib &&
             # output font is WOFF -- should we try to compress this table?
             exists ($self->{$k}->{' nocompress'}) ? $self->{$k}->{' nocompress'} != -1 :
             ref($self->{' nocompress'}) eq 'ARRAY' ? !exists($self->{' nocompress'}{$k}) :
-            ref($self->{' nocompress'}) eq 'SCALAR' && $self->{' nocompress'} != -1)
-        {
+            ref($self->{' nocompress'}) eq 'SCALAR' && $self->{' nocompress'} != -1) {
             # Yes -- we may want to compress this table.
             # Create string file handle to hold uncompressed table
             my $dat;
@@ -489,12 +513,14 @@ sub out {
 
             # Is table long enough to try compression?
             unless (
-                exists ($self->{$k}->{' nocompress'}) && $len <= $self->{$k}->{' nocompress'} ||
-                ref($self->{' nocompress'}) eq 'SCALAR' && $len <= $self->{' nocompress'})
-            {
+                exists ($self->{$k}->{' nocompress'})
+                && $len <= $self->{$k}->{' nocompress'}
+                || ref($self->{' nocompress'}) eq 'SCALAR'
+                && $len <= $self->{' nocompress'}) {
                 # Yes -- so compress and check lengths:
                 my $zdat = Compress::Zlib::compress($dat);
                 my $zlen = bytes::length($zdat);
+
                 if ($zlen < $len) {
                     # write the compressed $zdat
                 }
@@ -569,7 +595,7 @@ sub out {
 # Now we can output the directory again
     if ($self->{' wantsig'}) { @tlist = sort @tlist; }
     $fh->seek(12, 0);
-    foreach $k (@tlist) { $fh->print($dir{$k}); }
+    for $k (@tlist) { $fh->print($dir{$k}); }
     $fh->print(pack('A4NNN', '', 0, 0, 0)) if ($self->{' wantsig'});
     $fh->close();
     $self;
@@ -604,7 +630,7 @@ sub out_xml {
     $fh->print("<?xml version='1.0' encoding='UTF-8'?>\n");
     $fh->print("<font tables='$numTables'>\n\n");
 
-    foreach $k (@tlist) {
+    for $k (@tlist) {
         $fh->print("<table name='$k'>\n");
         $self->{$k}->out_xml($context, $context->{'indent'});
         $fh->print("</table>\n");
@@ -652,7 +678,7 @@ sub XML_end {
     return undef unless ($tag eq 'table' && $attrs{'name'} eq 'loca');
     if (defined $context->{'glyphs'} && $context->{'glyphs'} ne $self->{'loca'}{'glyphs'}) {
         for ($i = 0; $i <= $#{$context->{'glyphs'}}; $i++) {
-        	$self->{'loca'}{'glyphs'}[$i] = $context->{'glyphs'}[$i] if defined $context->{'glyphs'}[$i];
+            $self->{'loca'}{'glyphs'}[$i] = $context->{'glyphs'}[$i] if defined $context->{'glyphs'}[$i];
         }
         $context->{'glyphs'} = $self->{'loca'}{'glyphs'};
     }
@@ -698,7 +724,7 @@ sub tables_do {
     my ($self, $func, @tables) = @_;
     my ($t);
 
-    foreach $t (@tables ? @tables : sort grep {length($_) == 4} keys %$self) { &$func($self->{$t}, $t); }
+    for $t (@tables ? @tables : sort grep {length($_) == 4} keys %$self) { &$func($self->{$t}, $t); }
     $self;
 }
 
@@ -741,8 +767,8 @@ sub release {
     }
 
 # check that everything has gone - it better had!
-    foreach my $key (keys %{$self}) {
-    	warn ref($self) . " still has '$key' key left after release.\n";
+    for my $key (keys %{$self}) {
+        warn ref($self) . " still has '$key' key left after release.\n";
     }
 }
 
